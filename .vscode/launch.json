@@ -1,0 +1,27 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "aws-example",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "hopeit.server.web",
+            "args": [
+                "--port=8023",
+                "--config-files=apps/examples/aws-example/config/dev-local.json,apps/examples/aws-example/config/app-config.json",
+                "--api-file=apps/examples/aws-example/api/openapi.json"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "env": {
+                "OBJECT_STORAGE_ACCESS_KEY_ID": "hopeit",
+                "OBJECT_STORAGE_SECRET_ACCESS_KEY": "Hopei#Engine#2020",
+                "OBJECT_STORAGE_ENDPOINT_URL": "http://localhost:9000",
+                "OBJECT_STORAGE_SSL": "false",
+            }
+        },
+    ]
+}
