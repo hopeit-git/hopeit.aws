@@ -1,0 +1,13 @@
+{
+    "app": {
+        "name": "hopeit-aws-s3",
+        "version": "${HOPEIT_APPS_API_VERSION}"
+    },
+    "engine": {
+        "import_modules": [
+            "hopeit.aws.s3"
+        ]
+    },
+    "settings": {},
+    "events": {}
+}
