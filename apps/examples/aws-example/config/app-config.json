@@ -1,0 +1,72 @@
+{
+  "app": {
+    "name": "aws-example",
+    "version": "${HOPEIT_APPS_API_VERSION}"
+  },
+  "plugins": [],
+  "engine": {
+    "import_modules": [
+      "aws_example"
+    ],
+    "read_stream_timeout": 1000,
+    "read_stream_interval": 1000,
+    "cors_origin": "*"
+  },
+  "env": {
+    "storage": {
+      "base_path": "/tmp/hopeit/"
+    },
+    "upload_something": {
+      "save_path": "{env.storage.base_path}/{auto}/",
+      "chunk_size": 16384
+    }
+  },
+  "settings": {
+    "fs_storage": {
+      "path": "{env.storage.base_path}/{auto}",
+      "partition_dateformat": "%Y/%m/%d/%H/"
+    },
+    "storage.save_events_fs": {
+      "path": "{env.storage.base_path}/{auto}",
+      "partition_dateformat": "%Y/%m/%d/%H/",
+      "flush_seconds": 60.0,
+      "flush_max_size": 100
+    },
+    "object_store": {
+      "endpoint_url": "${OBJECT_STORAGE_ENDPOINT_URL}",
+      "aws_access_key_id": "${OBJECT_STORAGE_ACCESS_KEY_ID}",
+      "aws_secret_access_key": "${OBJECT_STORAGE_SECRET_ACCESS_KEY}",
+      "use_ssl": "${OBJECT_STORAGE_SSL}"
+    },
+    "hopeit_bucket": {
+      "bucket": "hopeit-store"
+    }
+  },
+  "events": {
+    "save_something": {
+      "type": "POST",
+      "setting_keys": [
+        "fs_storage",
+        "object_store",
+        "hopeit_bucket"
+      ]
+    },
+    "query_something": {
+      "type": "POST",
+      "setting_keys": [
+        "fs_storage",
+        "object_store",
+        "hopeit_bucket"
+      ]
+    },
+    "download_something": {
+      "type": "GET"
+    },
+    "download_something_streamed": {
+      "type": "GET"
+    },
+    "upload_something": {
+      "type": "MULTIPART"
+    }
+  }
+}
