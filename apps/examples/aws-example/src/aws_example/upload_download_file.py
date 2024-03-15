@@ -5,13 +5,14 @@ Uploads file using multipart upload support. Returns metadata Something object.
 ```
 """
 
+from io import BytesIO
 from typing import List, Optional
 from dataclasses import dataclass, field
 
 from hopeit.app.api import event_api
 from hopeit.app.logger import app_extra_logger
 from hopeit.app.context import EventContext
-from hopeit.aws.s3 import ConnectionConfig, ObjectStorage, ObjectStorageSettings
+from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 from hopeit.dataobjects import dataobject
 
 object_store: Optional[ObjectStorage] = None
@@ -48,26 +49,24 @@ __api__ = event_api(
 async def __init_event__(context: EventContext):
     global object_store
     if object_store is None:
-        conn: ConnectionConfig = context.settings(
-            key="s3_conn_config", datatype=ConnectionConfig
-        )
         settings: ObjectStorageSettings = context.settings(
             key="object_store", datatype=ObjectStorageSettings
         )
-        object_store = (
-            await ObjectStorage.with_settings(settings)
-            .connect(conn_config=conn, create_bucket=True)
-        )
+        object_store = await ObjectStorage.with_settings(settings)
 
 
 async def upload_item(payload: None, context: EventContext) -> str:
     """
     Upload file
     """
+    assert object_store
+
     file_name = "hopeit-iso.png"
     src_file_path = f"./apps/examples/aws-example/resources/{file_name}"
     with open(src_file_path, "rb") as file:
-        file_path = await object_store.store_file(file_name=file_name, value=file)
+        file_path = await object_store.store_file(
+            file_name=file_name, value=BytesIO(file.read())
+        )
     return file_path
 
 
@@ -75,13 +74,14 @@ async def download_item(file_name: str, context: EventContext) -> str:
     """
     Create Something objects to be returned for each uploaded file
     """
-
+    assert object_store
     tgt_file_name = "_hopeit-iso.png"
     tgt_file_path = "./apps/examples/aws-example/resources/"
     partition_key = object_store.partition_key(file_name)
-    file_name = file_name.rsplit('/', 1)[-1]
+    file_name = file_name.rsplit("/", 1)[-1]
 
     data = await object_store.get_file(file_name=file_name, partition_key=partition_key)
+    assert data
     with open(f"{tgt_file_path}{tgt_file_name}", "wb") as file:
         file.write(data)
 

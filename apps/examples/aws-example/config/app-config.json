@@ -28,71 +28,63 @@
       "flush_seconds": 60.0,
       "flush_max_size": 100
     },
-    "s3_conn_config": {
-      "endpoint_url": "${OBJECT_STORAGE_ENDPOINT_URL}",
-      "aws_access_key_id": "${OBJECT_STORAGE_ACCESS_KEY_ID}",
-      "aws_secret_access_key": "${OBJECT_STORAGE_SECRET_ACCESS_KEY}",
-      "use_ssl": "${OBJECT_STORAGE_SSL}"
-    },
     "object_store": {
       "bucket": "hopeit-store",
-      "partition_dateformat": "%Y/%m/%d/%H/"
+      "partition_dateformat": "%Y/%m/%d/%H/",
+      "connection": {
+        "endpoint_url": "${OBJECT_STORAGE_ENDPOINT_URL}",
+        "aws_access_key_id": "${OBJECT_STORAGE_ACCESS_KEY_ID}",
+        "aws_secret_access_key": "${OBJECT_STORAGE_SECRET_ACCESS_KEY}",
+        "use_ssl": "${OBJECT_STORAGE_SSL}"
+      }
     }
   },
   "events": {
     "save_something": {
       "type": "POST",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
     "query_something": {
       "type": "POST",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
     "list_objects": {
       "type": "GET",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
     "list_files": {
       "type": "GET",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
     "download_something": {
       "type": "GET",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
     "upload_download_file": {
       "type": "GET",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
-    "upload_file_streamed": {
+    "streamed_upload_file": {
       "type": "MULTIPART",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     },
-    "download_file_streamed": {
+    "streamed_download_file": {
       "type": "GET",
       "setting_keys": [
-        "s3_conn_config",
         "object_store"
       ]
     }

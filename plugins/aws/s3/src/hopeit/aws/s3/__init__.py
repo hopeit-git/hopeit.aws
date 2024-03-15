@@ -4,18 +4,15 @@ Storage/persistence asynchronous stores and gets files from object storage.
 """
 
 import io
-from typing import Generic, Optional, Type, Union, List
+from typing import AsyncIterator, Dict, Generic, Optional, Type, Union, List, Tuple, Any
 from io import BytesIO
 import fnmatch
+from dataclasses import dataclass
+
 from aioboto3 import Session  # type: ignore
 from botocore.exceptions import ClientError
-from hopeit.dataobjects import dataclass, dataobject, DataObject
+from hopeit.dataobjects import dataobject, DataObject
 from hopeit.dataobjects.payload import Payload
-from hopeit.app.context import (
-    EventContext,
-    PostprocessHook,
-    PostprocessStreamResponseHook,
-)
 from hopeit.aws.s3.partition import get_file_partition_key, get_partition_key
 
 SUFFIX = ".json"
@@ -39,6 +36,19 @@ class FileInfo:
 
 @dataobject
 @dataclass
+class ConnectionConfig:
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    endpoint_url: str
+    use_ssl: Union[str, bool]
+
+    def __post_init__(self):
+        if isinstance(self.use_ssl, str):
+            self.use_ssl = self.use_ssl.lower() in ("true", "1", "t")
+
+
+@dataobject
+@dataclass
 class ObjectStorageSettings:
     """
     S3 storage plugin.
@@ -55,23 +65,15 @@ class ObjectStorageSettings:
     """
 
     bucket: str
+    connection: ConnectionConfig
     partition_dateformat: Optional[str] = None
     flush_seconds: float = 0.0
     flush_max_size: int = 1
     create_bucket: bool = False
 
-
-@dataobject
-@dataclass
-class ConnectionConfig:
-    aws_access_key_id: str
-    aws_secret_access_key: str
-    endpoint_url: str
-    use_ssl: Union[str, bool]
-
     def __post_init__(self):
-        if isinstance(self.use_ssl, str):
-            self.use_ssl = self.use_ssl.lower() in ("true", "1", "t")
+        if isinstance(self.create_bucket, str):
+            self.create_bucket = self.create_bucket.lower() in ("true", "1", "t")
 
 
 @dataobject
@@ -86,7 +88,7 @@ class ObjectStorage(Generic[DataObject]):
     Stores and retrieves dataobjects and files from S3
     """
 
-    _conn_config: Optional[ConnectionConfig] = None
+    _conn_config: Union[Dict[str, Any], List[Any]] = {}
     _conn: Optional[Session] = None
 
     def __init__(self, bucket: str, partition_dateformat: Optional[str] = None):
@@ -101,16 +103,15 @@ class ObjectStorage(Generic[DataObject]):
         self.partition_dateformat = (partition_dateformat or "").strip("/")
 
     @classmethod
-    def with_settings(cls, settings: ObjectStorageSettings) -> "ObjectStorage":
-        return cls(
+    async def with_settings(cls, settings: ObjectStorageSettings) -> "ObjectStorage":
+        return await cls(
             bucket=settings.bucket, partition_dateformat=settings.partition_dateformat
-        )
+        ).connect(conn_config=settings.connection)
 
     async def connect(
         self,
         *,
         conn_config: ConnectionConfig,
-        create_bucket: bool = False,
     ):
         """
         Creates a ObjectStorage connection pool
@@ -120,14 +121,13 @@ class ObjectStorage(Generic[DataObject]):
         """
         self._conn_config = Payload.to_obj(conn_config)
         self._conn = Session()
-        if create_bucket:
-            async with self._conn.client(
-                OBJECT_STORAGE_SERVICE, **self._conn_config
-            ) as object_store:
-                try:
-                    await object_store.create_bucket(Bucket=self.bucket)
-                except ClientError:
-                    pass
+        async with self._conn.client(
+            OBJECT_STORAGE_SERVICE, **self._conn_config
+        ) as object_store:
+            try:
+                await object_store.create_bucket(Bucket=self.bucket)
+            except ClientError:
+                pass
         return self
 
     async def get(
@@ -152,8 +152,7 @@ class ObjectStorage(Generic[DataObject]):
         ) as object_store:
             try:
                 assert self.bucket
-                if self.partition_key:
-                    key = f"{partition_key}/{key}"
+                key = f"{partition_key}/{key}" if partition_key else key
                 file_obj = BytesIO()
                 await object_store.download_fileobj(self.bucket, key + SUFFIX, file_obj)
                 file_obj.seek(0)
@@ -165,36 +164,6 @@ class ObjectStorage(Generic[DataObject]):
                 if ex.response["Error"]["Code"] == "404":
                     return None
                 raise ex
-
-    async def get_fileobj(
-        self,
-        file_name: str,
-        file,
-        *,
-        partition_key: Optional[str] = None,
-    ):
-        """
-        Download an object from S3 to a file-like object.
-
-        :param key: object id
-
-        The file-like object must be in binary mode.
-        This is a managed transfer which will perform a multipart download in
-        multiple threads if necessary.
-        Usage::
-            with open('filename', 'wb') as data:
-                object_storage.get('mykey', data)
-        """
-        assert self._conn
-
-        async with self._conn.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
-            assert self.bucket
-            obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
-
-            async for chunk in obj["Body"]:
-                file.write(chunk)
 
     async def get_file(
         self,
@@ -215,9 +184,10 @@ class ObjectStorage(Generic[DataObject]):
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             assert self.bucket
-            file_path = f"{partition_key}/{file_name}" if partition_key else file_name
+            if self.partition_dateformat:
+                file_name = f"{partition_key}/{file_name}"
             try:
-                obj = await object_store.get_object(Bucket=self.bucket, Key=file_path)
+                obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
                 ret = BytesIO()
                 async for chunk in obj["Body"]:
                     ret.write(chunk)
@@ -227,41 +197,40 @@ class ObjectStorage(Generic[DataObject]):
                     return None
                 raise e
 
-    async def get_streamed_file(
+    async def get_file_chunked(
         self,
         file_name: str,
-        context: EventContext,
-        response: PostprocessHook,
-        content_disposition: Optional[str] = None,
-        content_type: Optional[str] = None,
-    ) -> PostprocessStreamResponseHook:
+        *,
+        partition_key: Optional[str] = None,
+    ) -> AsyncIterator[Tuple[Optional[bytes], int]]:
         """
-        Retrieves the object from the object store bucket as PostprocessStreamResponseHook
+        Download an object from S3 to a file-like object.
 
-        :param file_name: object id
-        :param context: hopeit EventContext
-        :param response: PostprocessHook
-        :param content_disposition: Optional[str], overwrites the default = f'attachment; filename="{file_name}"'
-        :param content_type: Optional[str], overwrites the default `object` content_type
-        :return PostprocessStreamResponseHook
+        :param key: object id
+
+        The file-like object must be in binary mode.
+        This is a managed transfer which will perform a multipart download in
+        multiple threads if necessary.
+        Usage::
+            with open('filename', 'wb') as data:
+                object_storage.get('mykey', data)
         """
         assert self._conn
+
         async with self._conn.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             assert self.bucket
-            obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
-            stream_response = await response.prepare_stream_response(
-                context=context,
-                content_disposition=content_disposition
-                or f'attachment; filename="{file_name}"',
-                content_type=content_type or obj["ContentType"],
-                content_length=obj["ContentLength"],
-            )
-
+            file_name = f"{partition_key}/{file_name}" if partition_key else file_name
+            try:
+                obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "NoSuchKey":
+                    yield None, 0
+                raise e
+            content_length = obj["ContentLength"]
             async for chunk in obj["Body"]:
-                await stream_response.write(chunk)
-            return stream_response
+                yield chunk, content_length
 
     async def store(self, *, key: str, value: DataObject) -> str:
         """
@@ -373,7 +342,7 @@ class ObjectStorage(Generic[DataObject]):
         """This method generates an `ItemLocator` object from a given `item_path`"""
         comps = item_path.split("/")
         partition_key = (
-            "/".join(comps[-n_part_comps - 1 : -1])
+            "/".join(comps[-n_part_comps - 1: -1])
             if self.partition_dateformat
             else None
         )

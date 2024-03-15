@@ -9,9 +9,9 @@ from typing import Optional
 from hopeit.app.api import event_api
 from hopeit.app.logger import app_extra_logger
 from hopeit.app.context import EventContext
+from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 
 from model import Something, User, SomethingParams
-from hopeit.aws.s3 import ObjectStorage, ConnectionConfig, ObjectStorageSettings
 
 object_store: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()
@@ -31,16 +31,10 @@ __api__ = event_api(
 async def __init_event__(context):
     global object_store
     if object_store is None:
-        conn: ConnectionConfig = context.settings(
-            key="s3_conn_config", datatype=ConnectionConfig
-        )
         settings: ObjectStorageSettings = context.settings(
             key="object_store", datatype=ObjectStorageSettings
         )
-        object_store = (
-            await ObjectStorage.with_settings(settings)
-            .connect(conn_config=conn, create_bucket=True)
-        )
+        object_store = await ObjectStorage.with_settings(settings)
 
 
 async def create_something(

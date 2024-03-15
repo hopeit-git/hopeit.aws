@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import os
 import shutil
 from typing import Optional
-from hopeit.aws.s3 import ConnectionConfig, ObjectStorage, ObjectStorageSettings
+from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 
 from hopeit.dataobjects import BinaryDownload
 from hopeit.app.api import event_api
@@ -41,16 +41,10 @@ logger, extra = app_extra_logger()
 async def __init_event__(context):
     global object_store
     if object_store is None:
-        conn: ConnectionConfig = context.settings(
-            key="s3_conn_config", datatype=ConnectionConfig
-        )
         settings: ObjectStorageSettings = context.settings(
             key="object_store", datatype=ObjectStorageSettings
         )
-        object_store = (
-            await ObjectStorage.with_settings(settings)
-            .connect(conn_config=conn, create_bucket=True)
-        )
+        object_store = await ObjectStorage.with_settings(settings)
 
 
 async def find_image(

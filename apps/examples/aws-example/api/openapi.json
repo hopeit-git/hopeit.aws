@@ -247,13 +247,13 @@
         ],
         "responses": {
           "200": {
-            "description": "list of Something objects",
+            "description": "list of ItemLocators",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/str"
+                    "$ref": "#/components/schemas/ItemLocator"
                   }
                 }
               }
@@ -400,9 +400,9 @@
         ]
       }
     },
-    "/api/aws-example/0x23/upload-file-streamed": {
+    "/api/aws-example/0x23/streamed-upload-file": {
       "post": {
-        "summary": "AWS Example: Multipart Upload files stremed",
+        "summary": "AWS Example: Streamed Upload File",
         "description": "Upload files using Multipart form request",
         "parameters": [
           {
@@ -471,14 +471,14 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "upload_file_streamed"
+                    "streamed_upload_file"
                   ],
                   "properties": {
-                    "upload_file_streamed": {
+                    "streamed_upload_file": {
                       "type": "string"
                     }
                   },
-                  "description": "upload_file_streamed string payload"
+                  "description": "streamed_upload_file string payload"
                 }
               }
             }
@@ -489,16 +489,25 @@
         ]
       }
     },
-    "/api/aws-example/0x23/download-file-streamed": {
+    "/api/aws-example/0x23/streamed-download-file": {
       "get": {
-        "summary": "AWS Example: Download File Streamed",
-        "description": "Download streamd created content as file.\nThe PostprocessHook return the requested resource as stream using `prepare_stream_response`.",
+        "summary": "AWS Example: Streamed Download File",
+        "description": "Download streamed S3 content as file.\nThe PostprocessHook return the requested resource as stream using `prepare_stream_response`.",
         "parameters": [
           {
             "name": "file_name",
             "in": "query",
             "required": true,
             "description": "expected return file name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "partition_key",
+            "in": "query",
+            "required": false,
+            "description": "Partition folder in `YYYY/MM/DD/HH` format",
             "schema": {
               "type": "string"
             }
@@ -525,12 +534,31 @@
         ],
         "responses": {
           "200": {
-            "description": "Return content with filename=`file_name`",
+            "description": "Return a file",
             "content": {
               "application/octet-stream": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "streamed_download_file"
+                  ],
+                  "properties": {
+                    "streamed_download_file": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "streamed_download_file string payload"
                 }
               }
             }
@@ -648,6 +676,22 @@
         "x-module-name": "model",
         "description": "Item not found in datastore"
       },
+      "ItemLocator": {
+        "type": "object",
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "partition_key": {
+            "type": "string"
+          }
+        },
+        "x-module-name": "hopeit.aws.s3",
+        "description": "ItemLocator(item_id: str, partition_key: Optional[str] = None)"
+      },
       "UploadedFile": {
         "type": "object",
         "required": [
@@ -670,7 +714,7 @@
             "type": "integer"
           }
         },
-        "x-module-name": "aws_example.upload_file_streamed",
+        "x-module-name": "aws_example.streamed_upload_file",
         "description": "UploadedFile(file_id: str, file_name: str, saved_path: str, size: int)"
       }
     },
