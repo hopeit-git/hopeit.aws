@@ -89,7 +89,7 @@ class ObjectStorage(Generic[DataObject]):
     """
 
     _conn_config: Union[Dict[str, Any], List[Any]] = {}
-    _conn: Optional[Session] = None
+    _session: Session
 
     def __init__(self, bucket: str, partition_dateformat: Optional[str] = None):
         """
@@ -120,8 +120,8 @@ class ObjectStorage(Generic[DataObject]):
         :param bucket: str
         """
         self._conn_config = Payload.to_obj(conn_config)
-        self._conn = Session()
-        async with self._conn.client(
+        self._session = Session()
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             try:
@@ -145,9 +145,8 @@ class ObjectStorage(Generic[DataObject]):
         :param partition_key: partition path to be appended to base path
         :return: instance
         """
-        assert self._conn
 
-        async with self._conn.client(
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             try:
@@ -178,9 +177,8 @@ class ObjectStorage(Generic[DataObject]):
         :param partition_key: Optional partition key for the file path.
         :return: The contents of the downloaded file as bytes.
         """
-        assert self._conn
 
-        async with self._conn.client(
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             assert self.bucket
@@ -215,9 +213,8 @@ class ObjectStorage(Generic[DataObject]):
             with open('filename', 'wb') as data:
                 object_storage.get('mykey', data)
         """
-        assert self._conn
 
-        async with self._conn.client(
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             assert self.bucket
@@ -239,8 +236,7 @@ class ObjectStorage(Generic[DataObject]):
         :param value: File like object
         :param key: object id
         """
-        assert self._conn
-        async with self._conn.client(
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             file_path = f"{key}{SUFFIX}"
@@ -261,8 +257,7 @@ class ObjectStorage(Generic[DataObject]):
         :param value: io.BytesIO, the file-like object to store
         :return: str file location
         """
-        assert self._conn
-        async with self._conn.client(
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             file_path = file_name
@@ -309,7 +304,7 @@ class ObjectStorage(Generic[DataObject]):
         """
         A generator function similar to `glob` that lists files in an S3 bucket
         """
-        async with self._conn.client(
+        async with self._session.client(
             OBJECT_STORAGE_SERVICE, **self._conn_config
         ) as object_store:
             paginator = object_store.get_paginator("list_objects_v2")

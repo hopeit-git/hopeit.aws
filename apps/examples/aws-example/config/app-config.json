@@ -64,12 +64,6 @@
         "object_store"
       ]
     },
-    "download_something": {
-      "type": "GET",
-      "setting_keys": [
-        "object_store"
-      ]
-    },
     "upload_download_file": {
       "type": "GET",
       "setting_keys": [

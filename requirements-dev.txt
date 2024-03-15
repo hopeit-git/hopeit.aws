@@ -2,5 +2,4 @@ black
 mypy
 flake8
 pylint
-boto3-stubs
-mypy-boto3-s3
+boto3-stubs[s3]
