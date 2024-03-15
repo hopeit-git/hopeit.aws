@@ -6,7 +6,7 @@
     "description": "AWS Example"
   },
   "paths": {
-    "/api/aws-example/0x22/save-something": {
+    "/api/aws-example/0x23/save-something": {
       "post": {
         "summary": "AWS Example: Save Something",
         "description": "Creates and saves Something",
@@ -83,14 +83,14 @@
           }
         },
         "tags": [
-          "aws_example.0x22"
+          "aws_example.0x23"
         ]
       }
     },
-    "/api/aws-example/0x22/query-something": {
+    "/api/aws-example/0x23/query-something": {
       "post": {
-        "summary": "Simple Example: Query Something",
-        "description": "Loads Something from disk",
+        "summary": "AWS Example: Query Something",
+        "description": "Loads Something from s3",
         "parameters": [
           {
             "name": "item_id",
@@ -153,11 +153,119 @@
           }
         },
         "tags": [
-          "aws_example.0x22"
+          "aws_example.0x23"
         ]
       }
     },
-    "/api/aws-example/0x22/download-something": {
+    "/api/aws-example/0x23/list-objects": {
+      "get": {
+        "summary": "AWS Example: List Objects",
+        "description": "Lists all available Something objects",
+        "parameters": [
+          {
+            "name": "wildcard",
+            "in": "query",
+            "required": false,
+            "description": "Wildcard to filter objects by name prefixed by partition folder in format YYYY/MM/DD/HH/*",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Track-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Track-Request-Ts",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Ts",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of Something objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Something"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "aws_example.0x23"
+        ]
+      }
+    },
+    "/api/aws-example/0x23/list-files": {
+      "get": {
+        "summary": "AWS Example: List Files",
+        "description": "Lists all available Something objects",
+        "parameters": [
+          {
+            "name": "wildcard",
+            "in": "query",
+            "required": false,
+            "description": "Wildcard to filter objects by name prefixed by partition folder in format YYYY/MM/DD/HH/*",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Track-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Track-Request-Ts",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Ts",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of Something objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/str"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "aws_example.0x23"
+        ]
+      }
+    },
+    "/api/aws-example/0x23/download-something": {
       "get": {
         "summary": "AWS Example: Download Something",
         "description": "Download image file. The PostprocessHook return the requested file as stream.",
@@ -224,13 +332,166 @@
           }
         },
         "tags": [
-          "aws_example.0x22"
+          "aws_example.0x23"
         ]
       }
     },
-    "/api/aws-example/0x22/download-something-streamed": {
+    "/api/aws-example/0x23/upload-download-file": {
       "get": {
-        "summary": "AWS Example: Download Something Streamed",
+        "summary": "AWS Example: Upload Download File",
+        "description": "Upload files using Multipart form request",
+        "parameters": [
+          {
+            "name": "X-Track-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Track-Request-Ts",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Ts",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of created Something objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UploadedFile"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "upload_download_file"
+                  ],
+                  "properties": {
+                    "upload_download_file": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "upload_download_file string payload"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "aws_example.0x23"
+        ]
+      }
+    },
+    "/api/aws-example/0x23/upload-file-streamed": {
+      "post": {
+        "summary": "AWS Example: Multipart Upload files stremed",
+        "description": "Upload files using Multipart form request",
+        "parameters": [
+          {
+            "name": "X-Track-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Track-Request-Ts",
+            "in": "header",
+            "required": false,
+            "description": "Track information: Request-Ts",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "attachment"
+                ],
+                "properties": {
+                  "attachment": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "attachment"
+                  }
+                }
+              },
+              "encoding": {
+                "attachment": {
+                  "contentType": "application/octect-stream"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "list of created Something objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UploadedFile"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "upload_file_streamed"
+                  ],
+                  "properties": {
+                    "upload_file_streamed": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "upload_file_streamed string payload"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "aws_example.0x23"
+        ]
+      }
+    },
+    "/api/aws-example/0x23/download-file-streamed": {
+      "get": {
+        "summary": "AWS Example: Download File Streamed",
         "description": "Download streamd created content as file.\nThe PostprocessHook return the requested resource as stream using `prepare_stream_response`.",
         "parameters": [
           {
@@ -276,129 +537,7 @@
           }
         },
         "tags": [
-          "aws_example.0x22"
-        ]
-      }
-    },
-    "/api/aws-example/0x22/upload-something": {
-      "post": {
-        "summary": "AWS Example: Multipart Upload files",
-        "description": "Upload files using Multipart form request",
-        "parameters": [
-          {
-            "name": "something_id",
-            "in": "query",
-            "required": true,
-            "description": "something_id",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-Track-Request-Id",
-            "in": "header",
-            "required": false,
-            "description": "Track information: Request-Id",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-Track-Request-Ts",
-            "in": "header",
-            "required": false,
-            "description": "Track information: Request-Ts",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "user",
-                  "attachment",
-                  "object"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "id"
-                  },
-                  "user": {
-                    "type": "string",
-                    "description": "user"
-                  },
-                  "attachment": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "attachment"
-                  },
-                  "object": {
-                    "$ref": "#/components/schemas/Something",
-                    "description": "object"
-                  }
-                }
-              },
-              "encoding": {
-                "id": {
-                  "contentType": "text/plain"
-                },
-                "user": {
-                  "contentType": "text/plain"
-                },
-                "attachment": {
-                  "contentType": "application/octect-stream"
-                },
-                "object": {
-                  "contentType": "application/json"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "list of created Something objects",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Something"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Missing or invalid fields",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "upload_something"
-                  ],
-                  "properties": {
-                    "upload_something": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "upload_something string payload"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "aws_example.0x22"
+          "aws_example.0x23"
         ]
       }
     }
@@ -508,6 +647,31 @@
         },
         "x-module-name": "model",
         "description": "Item not found in datastore"
+      },
+      "UploadedFile": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "file_name",
+          "saved_path",
+          "size"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "saved_path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "x-module-name": "aws_example.upload_file_streamed",
+        "description": "UploadedFile(file_id: str, file_name: str, saved_path: str, size: int)"
       }
     },
     "securitySchemes": {

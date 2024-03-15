@@ -19,3 +19,8 @@ install-examples:
 
 update-examples-api: install-examples
 	bash apps/examples/aws-example/api/create_openapi_file.sh
+
+
+check:
+	/bin/bash plugins/build/ci-static-plugins.sh $(PLUGINFOLDER)
+
