@@ -39,8 +39,14 @@ test_aws_none = AwsMockEmpty()
 
 
 @pytest.mark.asyncio
-async def test_objects_related_tasks(moto_server):
-    """Simple getting of client."""
+async def test_objects_related_tasks(moto_server, monkeypatch):
+    """
+    This test verifies the behavior of object storage operations when using
+    AWS credentials from environment variables.
+    """
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+
     settings = ObjectStorageSettings(
         bucket="test",
         connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
@@ -68,8 +74,14 @@ async def test_objects_related_tasks(moto_server):
 
 
 @pytest.mark.asyncio
-async def test_objects_with_partition_key(moto_server):
-    """Simple getting of client."""
+async def test_objects_with_partition_key(moto_server, monkeypatch):
+    """
+    This test verifies the behavior of object storage operations when using
+    AWS credentials from environment variables.
+    """
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+
     settings = ObjectStorageSettings(
         bucket="test",
         partition_dateformat="%Y/%m/%d/%H/",
@@ -101,12 +113,16 @@ async def test_objects_with_partition_key(moto_server):
 
 @pytest.mark.asyncio
 async def test_files_related_tasks(moto_server):
-    """Simple getting of client."""
+    """Using hardcoded AWS credentials."""
     settings = ObjectStorageSettings(
         bucket="test",
         create_bucket="true",
         connection_config=ConnectionConfig(
-            endpoint_url="http://localhost:9002", use_ssl=False, verify="True"
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopei#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            use_ssl=False,
+            verify="True",
         ),
     )
     object_store = await ObjectStorage.with_settings(settings)
@@ -132,7 +148,11 @@ async def test_files_with_partition_keys(moto_server):
         bucket="test",
         partition_dateformat="%Y/%m/%d/%H/",
         connection_config=ConnectionConfig(
-            endpoint_url="http://localhost:9002", use_ssl="False", verify="False"
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopei#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            use_ssl="False",
+            verify="False",
         ),
     )
     object_store = await ObjectStorage.with_settings(settings)
@@ -168,7 +188,11 @@ async def test_get_file_chunked(moto_server):
     settings = ObjectStorageSettings(
         bucket="test",
         connection_config=ConnectionConfig(
-            endpoint_url="http://localhost:9002", use_ssl="False", verify="False"
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopei#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            use_ssl="False",
+            verify="False",
         ),
     )
     object_store = await ObjectStorage.with_settings(settings)
