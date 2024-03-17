@@ -46,6 +46,7 @@ async def test_objects_related_tasks(moto_server, monkeypatch):
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
 
     settings = ObjectStorageSettings(
         bucket="test",
@@ -81,11 +82,14 @@ async def test_objects_with_partition_key(moto_server, monkeypatch):
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
 
     settings = ObjectStorageSettings(
         bucket="test",
         partition_dateformat="%Y/%m/%d/%H/",
-        connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
+        connection_config=ConnectionConfig(
+            endpoint_url="http://localhost:9002", region_name="eu-central-1"
+        ),
     )
     object_store = await ObjectStorage.with_settings(settings)
 
@@ -121,6 +125,7 @@ async def test_files_related_tasks(moto_server):
             aws_access_key_id="hopeit",
             aws_secret_access_key="Hopei#Engine#2020",
             endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
             use_ssl=False,
             verify="True",
         ),
@@ -151,6 +156,7 @@ async def test_files_with_partition_keys(moto_server):
             aws_access_key_id="hopeit",
             aws_secret_access_key="Hopei#Engine#2020",
             endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
             use_ssl="False",
             verify="False",
         ),
@@ -191,6 +197,7 @@ async def test_get_file_chunked(moto_server):
             aws_access_key_id="hopeit",
             aws_secret_access_key="Hopei#Engine#2020",
             endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
             use_ssl="False",
             verify="False",
         ),

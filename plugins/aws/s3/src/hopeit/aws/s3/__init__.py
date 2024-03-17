@@ -7,6 +7,7 @@ import fnmatch
 import io
 from dataclasses import dataclass
 from io import BytesIO
+import os
 from typing import Any, AsyncIterator, Dict, Generic, List, Optional, Tuple, Type, Union
 
 from aioboto3 import Session  # type: ignore
@@ -97,7 +98,7 @@ class ObjectStorageSettings:
     partition_dateformat: Optional[str] = None
     flush_seconds: float = 0.0
     flush_max_size: int = 1
-    create_bucket: Union[bool, str] = False
+    create_bucket: Union[bool, str] = True
 
     def __post_init__(self):
         if isinstance(self.create_bucket, str):
@@ -119,7 +120,12 @@ class ObjectStorage(Generic[DataObject]):
     _conn_config: Union[Dict[str, Any], List[Any]] = {}
     _session: Session
 
-    def __init__(self, bucket: str, partition_dateformat: Optional[str] = None):
+    def __init__(
+        self,
+        bucket: str,
+        partition_dateformat: Optional[str] = None,
+        create_bucket: bool = False,
+    ):
         """
         Initialize ObjectStorage with the bucket name and optional partition_dateformat.
         Example:
@@ -129,11 +135,14 @@ class ObjectStorage(Generic[DataObject]):
         """
         self.bucket: str = bucket
         self.partition_dateformat = (partition_dateformat or "").strip("/")
+        self._create_bucket = create_bucket
 
     @classmethod
     async def with_settings(cls, settings: ObjectStorageSettings) -> "ObjectStorage":
         return await cls(
-            bucket=settings.bucket, partition_dateformat=settings.partition_dateformat
+            bucket=settings.bucket,
+            partition_dateformat=settings.partition_dateformat,
+            create_bucket=settings.create_bucket,
         ).connect(connection_config=settings.connection_config)
 
     async def connect(
@@ -150,15 +159,26 @@ class ObjectStorage(Generic[DataObject]):
         assert self.bucket
         self._conn_config = Payload.to_obj(connection_config)
         self._session = Session()
-
-        async with self._session.client(S3, **self._conn_config) as object_store:
-            try:
-                await object_store.create_bucket(
-                    Bucket=self.bucket,
-                    CreateBucketConfiguration={"LocationConstraint": "eu-central-1"},
-                )
-            except ClientError:
-                pass
+        region_name = os.getenv("AWS_DEFAULT_REGION")
+        if self._create_bucket:
+            kwargs = (
+                {
+                    "CreateBucketConfiguration": {
+                        "LocationConstraint": connection_config.region_name
+                        or region_name
+                    }
+                }
+                if connection_config.region_name or region_name
+                else {}
+            )
+            async with self._session.client(S3, **self._conn_config) as object_store:
+                try:
+                    await object_store.create_bucket(Bucket=self.bucket, **kwargs)
+                except ClientError as e:
+                    if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
+                        pass
+                    else:
+                        raise e
         return self
 
     async def get(
@@ -376,7 +396,7 @@ class ObjectStorage(Generic[DataObject]):
         """This method generates an `ItemLocator` object from a given `item_path`"""
         comps = item_path.split("/")
         partition_key = (
-            "/".join(comps[-n_part_comps - 1: -1])
+            "/".join(comps[-n_part_comps - 1 : -1])
             if self.partition_dateformat
             else None
         )
