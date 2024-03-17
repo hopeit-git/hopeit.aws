@@ -12,26 +12,11 @@
     "read_stream_interval": 1000,
     "cors_origin": "*"
   },
-  "env": {
-    "storage": {
-      "base_path": "/tmp/hopeit/"
-    },
-    "upload_something": {
-      "save_path": "{env.storage.base_path}/{auto}/",
-      "chunk_size": 16384
-    }
-  },
   "settings": {
-    "storage.save_events_fs": {
-      "path": "{env.storage.base_path}/{auto}",
-      "partition_dateformat": "%Y/%m/%d/%H/",
-      "flush_seconds": 60.0,
-      "flush_max_size": 100
-    },
     "object_store": {
       "bucket": "hopeit-store",
       "partition_dateformat": "%Y/%m/%d/%H/",
-      "connection": {
+      "connection_config": {
         "endpoint_url": "${OBJECT_STORAGE_ENDPOINT_URL}",
         "aws_access_key_id": "${OBJECT_STORAGE_ACCESS_KEY_ID}",
         "aws_secret_access_key": "${OBJECT_STORAGE_SECRET_ACCESS_KEY}",

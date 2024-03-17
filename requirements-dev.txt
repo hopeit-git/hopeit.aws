@@ -1,3 +1,7 @@
+moto[server]
+pytest
+pytest-asyncio
+pytest-cov
 black
 mypy
 flake8

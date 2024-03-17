@@ -3,20 +3,21 @@ Storage/persistence asynchronous stores and gets files from object storage.
 
 """
 
-import io
-from typing import AsyncIterator, Dict, Generic, Optional, Type, Union, List, Tuple, Any
-from io import BytesIO
 import fnmatch
+import io
 from dataclasses import dataclass
+from io import BytesIO
+from typing import Any, AsyncIterator, Dict, Generic, List, Optional, Tuple, Type, Union
 
 from aioboto3 import Session  # type: ignore
 from botocore.exceptions import ClientError
-from hopeit.dataobjects import dataobject, DataObject
+
+from hopeit.dataobjects import DataObject, dataobject
 from hopeit.dataobjects.payload import Payload
 from hopeit.aws.s3.partition import get_file_partition_key, get_partition_key
 
 SUFFIX = ".json"
-OBJECT_STORAGE_SERVICE = "s3"
+S3 = "s3"
 
 __all__ = ["ObjectStorage", "ObjectStorageSettings", "ConnectionConfig"]
 
@@ -37,14 +38,41 @@ class FileInfo:
 @dataobject
 @dataclass
 class ConnectionConfig:
-    aws_access_key_id: str
-    aws_secret_access_key: str
-    endpoint_url: str
-    use_ssl: Union[str, bool]
+    """
+    :field aws_access_key_id, str: AWS access key ID
+    :field aws_secret_access_key, str: AWS secret access key
+    :field aws_session_token, str: AWS temporary session token
+    :field region_name, str: Default region when creating new connections
+    :field use_ssl, Union[bool, str]: Whether or not to use SSL. By default, SSL is used.
+    :field endpoint_url, str: The complete URL to use for the constructed client.
+        If this value is provided, then ``use_ssl`` is ignored.
+
+    :field verify, Union[bool, str]: Whether or not to verify SSL certificates.
+        By default SSL certificates are verified.  You can provide the following values:
+        * False - do not validate SSL certificates.  SSL will still be
+            used (unless use_ssl is False), but SSL certificates
+            will not be verified.
+        * path/to/cert/bundle.pem - A filename of the CA cert bundle to
+            uses. You can specify this argument if you want to use a
+            different CA cert bundle than the one used by botocore.
+    """
+
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    aws_session_token: Optional[str] = None
+    endpoint_url: Optional[str] = None
+    use_ssl: Union[bool, str] = True
+    region_name: Optional[str] = None
+    verify: Union[bool, str] = True
 
     def __post_init__(self):
         if isinstance(self.use_ssl, str):
             self.use_ssl = self.use_ssl.lower() in ("true", "1", "t")
+        if isinstance(self.verify, str):
+            if self.verify.lower() == "true":
+                self.verify = True
+            elif self.verify.lower() == "false":
+                self.verify = False
 
 
 @dataobject
@@ -65,15 +93,15 @@ class ObjectStorageSettings:
     """
 
     bucket: str
-    connection: ConnectionConfig
+    connection_config: ConnectionConfig
     partition_dateformat: Optional[str] = None
     flush_seconds: float = 0.0
     flush_max_size: int = 1
-    create_bucket: bool = False
+    create_bucket: Union[bool, str] = False
 
     def __post_init__(self):
         if isinstance(self.create_bucket, str):
-            self.create_bucket = self.create_bucket.lower() in ("true", "1", "t")
+            self.create_bucket = self.create_bucket.lower() in ("true")
 
 
 @dataobject
@@ -106,12 +134,12 @@ class ObjectStorage(Generic[DataObject]):
     async def with_settings(cls, settings: ObjectStorageSettings) -> "ObjectStorage":
         return await cls(
             bucket=settings.bucket, partition_dateformat=settings.partition_dateformat
-        ).connect(conn_config=settings.connection)
+        ).connect(connection_config=settings.connection_config)
 
     async def connect(
         self,
         *,
-        conn_config: ConnectionConfig,
+        connection_config: ConnectionConfig,
     ):
         """
         Creates a ObjectStorage connection pool
@@ -119,13 +147,14 @@ class ObjectStorage(Generic[DataObject]):
         :param config: ObjectStorageConnConfig
         :param bucket: str
         """
-        self._conn_config = Payload.to_obj(conn_config)
+        self._conn_config = Payload.to_obj(connection_config)
         self._session = Session()
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             try:
-                await object_store.create_bucket(Bucket=self.bucket)
+                await object_store.create_bucket(
+                    Bucket=self.bucket,
+                    CreateBucketConfiguration={"LocationConstraint": "eu-central-1"},
+                )
             except ClientError:
                 pass
         return self
@@ -146,9 +175,7 @@ class ObjectStorage(Generic[DataObject]):
         :return: instance
         """
 
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             try:
                 assert self.bucket
                 key = f"{partition_key}/{key}" if partition_key else key
@@ -178,9 +205,7 @@ class ObjectStorage(Generic[DataObject]):
         :return: The contents of the downloaded file as bytes.
         """
 
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             assert self.bucket
             if self.partition_dateformat:
                 file_name = f"{partition_key}/{file_name}"
@@ -191,7 +216,7 @@ class ObjectStorage(Generic[DataObject]):
                     ret.write(chunk)
                 return ret.getvalue()
             except ClientError as e:
-                if e.response["Error"]["Code"] == "404":
+                if e.response["Error"]["Code"] == "NoSuchKey":
                     return None
                 raise e
 
@@ -214,20 +239,19 @@ class ObjectStorage(Generic[DataObject]):
                 object_storage.get('mykey', data)
         """
 
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             assert self.bucket
             file_name = f"{partition_key}/{file_name}" if partition_key else file_name
             try:
                 obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
+                content_length = obj["ContentLength"]
+                async for chunk in obj["Body"]:
+                    yield chunk, content_length
             except ClientError as e:
                 if e.response["Error"]["Code"] == "NoSuchKey":
                     yield None, 0
-                raise e
-            content_length = obj["ContentLength"]
-            async for chunk in obj["Body"]:
-                yield chunk, content_length
+                else:
+                    raise e
 
     async def store(self, *, key: str, value: DataObject) -> str:
         """
@@ -236,9 +260,7 @@ class ObjectStorage(Generic[DataObject]):
         :param value: File like object
         :param key: object id
         """
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             file_path = f"{key}{SUFFIX}"
             if self.partition_dateformat:
                 partition_key = get_partition_key(value, self.partition_dateformat)
@@ -257,9 +279,7 @@ class ObjectStorage(Generic[DataObject]):
         :param value: io.BytesIO, the file-like object to store
         :return: str file location
         """
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             file_path = file_name
             if self.partition_dateformat:
                 partition_key = get_file_partition_key(self.partition_dateformat)
@@ -304,9 +324,7 @@ class ObjectStorage(Generic[DataObject]):
         """
         A generator function similar to `glob` that lists files in an S3 bucket
         """
-        async with self._session.client(
-            OBJECT_STORAGE_SERVICE, **self._conn_config
-        ) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_store:
             paginator = object_store.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
                 Bucket=bucket_name,
