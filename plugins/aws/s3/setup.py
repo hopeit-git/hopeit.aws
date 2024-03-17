@@ -43,7 +43,6 @@ setuptools.setup(
         "hopeit.aws.s3": ["py.typed"],
     },
     python_requires=">=3.8",
-    install_requires=["hopeit.engine", "aioboto3"],
     extras_require={},
     entry_points={},
 )

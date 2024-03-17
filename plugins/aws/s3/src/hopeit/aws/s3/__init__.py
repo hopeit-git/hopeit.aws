@@ -142,7 +142,7 @@ class ObjectStorage(Generic[DataObject]):
         return await cls(
             bucket=settings.bucket,
             partition_dateformat=settings.partition_dateformat,
-            create_bucket=settings.create_bucket,
+            create_bucket=bool(settings.create_bucket),
         ).connect(connection_config=settings.connection_config)
 
     async def connect(
@@ -396,7 +396,7 @@ class ObjectStorage(Generic[DataObject]):
         """This method generates an `ItemLocator` object from a given `item_path`"""
         comps = item_path.split("/")
         partition_key = (
-            "/".join(comps[-n_part_comps - 1 : -1])
+            "/".join(comps[-n_part_comps - 1: -1])
             if self.partition_dateformat
             else None
         )

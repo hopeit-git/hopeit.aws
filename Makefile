@@ -11,9 +11,9 @@ dev-deps: deps
 lock-requirements: clean dev-deps
 	pip freeze > requirements.lock
 
-clean:
+clean-plugins:
 	cd plugins/aws/s3 && \
-	rm -rf dist
+	rm -rf dist build
 
 locked-deps:	
 	pip install --force-reinstall -r requirements.lock && \
@@ -46,3 +46,9 @@ test: test-plugins
 
 qa: test check
 	echo "DONE."
+
+dist-plugin:
+	cd plugins/aws/s3/ && \
+	pip install build && \
+	pwd && \
+	python -m build
