@@ -147,8 +147,10 @@ class ObjectStorage(Generic[DataObject]):
         :param config: ObjectStorageConnConfig
         :param bucket: str
         """
+        assert self.bucket
         self._conn_config = Payload.to_obj(connection_config)
         self._session = Session()
+
         async with self._session.client(S3, **self._conn_config) as object_store:
             try:
                 await object_store.create_bucket(
@@ -177,7 +179,6 @@ class ObjectStorage(Generic[DataObject]):
 
         async with self._session.client(S3, **self._conn_config) as object_store:
             try:
-                assert self.bucket
                 key = f"{partition_key}/{key}" if partition_key else key
                 file_obj = BytesIO()
                 await object_store.download_fileobj(self.bucket, key + SUFFIX, file_obj)
@@ -206,7 +207,6 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_store:
-            assert self.bucket
             if self.partition_dateformat:
                 file_name = f"{partition_key}/{file_name}"
             try:
@@ -240,7 +240,6 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_store:
-            assert self.bucket
             file_name = f"{partition_key}/{file_name}" if partition_key else file_name
             try:
                 obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
@@ -304,6 +303,28 @@ class ObjectStorage(Generic[DataObject]):
             self._get_item_locator(item_path, n_part_comps, SUFFIX)
             for item_path in item_list
         ]
+
+    async def delete(self, *keys: str, partition_key: Optional[str] = None):
+        """
+        Delete specified keys
+
+        :param keys: str, keys to be deleted
+        """
+        async with self._session.client(S3, **self._conn_config) as object_store:
+            for key in keys:
+                key = f"{partition_key}/{key}" if partition_key else key
+                await object_store.delete_object(Bucket=self.bucket, Key=key + SUFFIX)
+
+    async def delete_files(self, *file_names: str, partition_key: Optional[str] = None):
+        """
+        Delete specified file_names
+
+        :param file_names: str, file names to be deleted
+        """
+        async with self._session.client(S3, **self._conn_config) as object_store:
+            for key in file_names:
+                key = f"{partition_key}/{key}" if partition_key else key
+                await object_store.delete_object(Bucket=self.bucket, Key=key)
 
     async def list_files(self, wildcard: str = "*") -> List[ItemLocator]:
         """

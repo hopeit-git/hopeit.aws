@@ -3,8 +3,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 import pytest
-from hopeit.aws.s3 import (ConnectionConfig, ItemLocator, ObjectStorage,
-                           ObjectStorageSettings)
+from hopeit.aws.s3 import (
+    ConnectionConfig,
+    ItemLocator,
+    ObjectStorage,
+    ObjectStorageSettings,
+)
 from hopeit.dataobjects import dataobject
 from moto.server import ThreadedMotoServer
 
@@ -88,6 +92,12 @@ async def test_objects_with_partition_key(moto_server):
     items = await object_store.list_objects("*test2*")
     assert items == [ItemLocator(item_id="test2", partition_key=partition_key)]
 
+    await object_store.delete("test2", partition_key=partition_key)
+    no_file = await object_store.get(
+        key="test2", datatype=AwsMockData, partition_key=partition_key
+    )
+    assert no_file is None
+
 
 @pytest.mark.asyncio
 async def test_files_related_tasks(moto_server):
@@ -145,6 +155,12 @@ async def test_files_with_partition_keys(moto_server):
 
     items = await object_store.list_files("*test4.bin*")
     assert items == [ItemLocator(item_id="test4.bin", partition_key=partition_key)]
+
+    await object_store.delete_files("test4.bin", partition_key=partition_key)
+    no_file = await object_store.get_file(
+        file_name="test4.bin", partition_key=partition_key
+    )
+    assert no_file is None
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,13 @@ deps:
 dev-deps: deps
 	pip install -U -r requirements-dev.txt
 
+lock-requirements: dev-deps	
+	pip freeze > requirements.lock
+
+locked-deps:	
+	pip install --force-reinstall -r requirements.lock && \
+	pip install -U -r requirements-dev.txt
+
 install:
 	cd plugins/aws/s3 && \
 	pip install --force-reinstall -r requirements.txt && \
@@ -32,3 +39,6 @@ check-apps:
 check: check-plugins check-apps
 
 test: test-plugins
+
+qa: test check
+	echo "DONE."
