@@ -8,8 +8,12 @@ deps:
 dev-deps: deps
 	pip install -U -r requirements-dev.txt
 
-lock-requirements: dev-deps	
+lock-requirements: clean dev-deps
 	pip freeze > requirements.lock
+
+clean:
+	cd plugins/aws/s3 && \
+	rm -rf dist
 
 locked-deps:	
 	pip install --force-reinstall -r requirements.lock && \
