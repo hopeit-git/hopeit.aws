@@ -1,6 +1,6 @@
 # This workflow will install hopeit.engine dev Python dependencies, run tests in multiple version of Python
 
-name: hopeit.engine QA
+name: hopeit.aws QA
 
 on:
   push:
@@ -29,6 +29,6 @@ jobs:
     - name: Install dependencies
       run: |
         make locked-deps
-    - name: hopeit.engine QA
+    - name: hopeit.aws QA
       run: |
         make qa
