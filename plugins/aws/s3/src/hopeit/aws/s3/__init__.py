@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 
 from hopeit.dataobjects import DataObject, dataobject
 from hopeit.dataobjects.payload import Payload
-from hopeit.aws.s3.partition import get_file_partition_key, get_partition_key
+from .partition import get_file_partition_key, get_partition_key
 
 
 SUFFIX = ".json"
