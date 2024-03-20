@@ -1,2 +1,2 @@
-hopeit.engine>=0.23,<1
+hopeit.engine>=0.24,<1
 aioboto3>=12.3.0

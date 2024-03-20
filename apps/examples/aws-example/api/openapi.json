@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "version": "0.1.0",
+    "version": "0.1",
     "title": "AWS Example",
     "description": "AWS Example"
   },
   "paths": {
-    "/api/aws-example/0x23/save-something": {
+    "/api/aws-example/0x1/s3/save-something": {
       "post": {
         "summary": "AWS Example: Save Something",
         "description": "Creates and saves Something",
@@ -50,14 +50,14 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "save_something"
+                    "s3.save_something"
                   ],
                   "properties": {
-                    "save_something": {
+                    "s3.save_something": {
                       "type": "string"
                     }
                   },
-                  "description": "save_something string payload"
+                  "description": "s3.save_something string payload"
                 }
               }
             }
@@ -69,25 +69,25 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "save_something"
+                    "s3.save_something"
                   ],
                   "properties": {
-                    "save_something": {
+                    "s3.save_something": {
                       "type": "string"
                     }
                   },
-                  "description": "save_something string payload"
+                  "description": "s3.save_something string payload"
                 }
               }
             }
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     },
-    "/api/aws-example/0x23/query-something": {
+    "/api/aws-example/0x1/s3/query-something": {
       "post": {
         "summary": "AWS Example: Query Something",
         "description": "Loads Something from s3",
@@ -153,11 +153,11 @@
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     },
-    "/api/aws-example/0x23/list-objects": {
+    "/api/aws-example/0x1/s3/list-objects": {
       "get": {
         "summary": "AWS Example: List Objects",
         "description": "Lists all available Something objects",
@@ -207,11 +207,11 @@
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     },
-    "/api/aws-example/0x23/list-files": {
+    "/api/aws-example/0x1/s3/list-files": {
       "get": {
         "summary": "AWS Example: List Files",
         "description": "Lists all available Something objects",
@@ -261,11 +261,11 @@
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     },
-    "/api/aws-example/0x23/upload-download-file": {
+    "/api/aws-example/0x1/s3/upload-download-file": {
       "get": {
         "summary": "AWS Example: Upload Download File",
         "description": "Upload files using Multipart form request",
@@ -311,25 +311,25 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "upload_download_file"
+                    "s3.upload_download_file"
                   ],
                   "properties": {
-                    "upload_download_file": {
+                    "s3.upload_download_file": {
                       "type": "string"
                     }
                   },
-                  "description": "upload_download_file string payload"
+                  "description": "s3.upload_download_file string payload"
                 }
               }
             }
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     },
-    "/api/aws-example/0x23/streamed-upload-file": {
+    "/api/aws-example/0x1/s3/streamed-upload-file": {
       "post": {
         "summary": "AWS Example: Streamed Upload File",
         "description": "Upload files using Multipart form request",
@@ -400,25 +400,25 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "streamed_upload_file"
+                    "s3.streamed_upload_file"
                   ],
                   "properties": {
-                    "streamed_upload_file": {
+                    "s3.streamed_upload_file": {
                       "type": "string"
                     }
                   },
-                  "description": "streamed_upload_file string payload"
+                  "description": "s3.streamed_upload_file string payload"
                 }
               }
             }
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     },
-    "/api/aws-example/0x23/streamed-download-file": {
+    "/api/aws-example/0x1/s3/streamed-download-file": {
       "get": {
         "summary": "AWS Example: Streamed Download File",
         "description": "Download streamed S3 content as file.\nThe PostprocessHook return the requested resource as stream using `prepare_stream_response`.",
@@ -480,21 +480,21 @@
                 "schema": {
                   "type": "object",
                   "required": [
-                    "streamed_download_file"
+                    "s3.streamed_download_file"
                   ],
                   "properties": {
-                    "streamed_download_file": {
+                    "s3.streamed_download_file": {
                       "type": "string"
                     }
                   },
-                  "description": "streamed_download_file string payload"
+                  "description": "s3.streamed_download_file string payload"
                 }
               }
             }
           }
         },
         "tags": [
-          "aws_example.0x23"
+          "aws_example.0x1"
         ]
       }
     }
@@ -515,7 +515,7 @@
             "type": "string"
           }
         },
-        "x-module-name": "model",
+        "x-module-name": "aws_example.model",
         "description": "Params to create and save Something"
       },
       "User": {
@@ -532,7 +532,7 @@
             "type": "string"
           }
         },
-        "x-module-name": "model",
+        "x-module-name": "aws_example.model",
         "description": "User information"
       },
       "Status": {
@@ -555,10 +555,10 @@
               "PROCESSED"
             ],
             "x-enum-name": "StatusType",
-            "x-module-name": "model"
+            "x-module-name": "aws_example.model"
           }
         },
-        "x-module-name": "model",
+        "x-module-name": "aws_example.model",
         "description": "Status change"
       },
       "Something": {
@@ -585,7 +585,7 @@
             "default": []
           }
         },
-        "x-module-name": "model",
+        "x-module-name": "aws_example.model",
         "description": "Example Something event"
       },
       "SomethingNotFound": {
@@ -602,7 +602,7 @@
             "type": "string"
           }
         },
-        "x-module-name": "model",
+        "x-module-name": "aws_example.model",
         "description": "Item not found in datastore"
       },
       "ItemLocator": {
@@ -643,7 +643,7 @@
             "type": "integer"
           }
         },
-        "x-module-name": "aws_example.streamed_upload_file",
+        "x-module-name": "aws_example.s3.streamed_upload_file",
         "description": "UploadedFile(file_id: str, file_name: str, saved_path: str, size: int)"
       }
     },

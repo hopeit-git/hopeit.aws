@@ -34,12 +34,12 @@ class AwsMockEmpty:
     test: Optional[str] = None
 
 
-test_aws = AwsMockData(test="test_aws")
-test_aws_none = AwsMockEmpty()
+expected_aws_mock_data = AwsMockData(test="test_aws")
+expected_aws_mock_empty = AwsMockEmpty()
 
 
 @pytest.mark.asyncio
-async def test_objects_related_tasks(moto_server, monkeypatch):
+async def test_objects(moto_server, monkeypatch):
     """
     This test verifies the behavior of object storage operations when using
     AWS credentials from environment variables.
@@ -52,33 +52,37 @@ async def test_objects_related_tasks(moto_server, monkeypatch):
         bucket="test",
         connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
     )
-    object_store = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings)
 
-    object_none = await object_store.get(key="test", datatype=AwsMockData)
+    object_none = await object_storage.get(key="test", datatype=AwsMockData)
     assert object_none is None
     empty_file = io.BytesIO(b"")
-    location = await object_store.store_file(
+    location = await object_storage.store_file(
         file_name="test_none.json", value=empty_file
     )
     assert location == "test_none.json"
-    object_none = await object_store.get(key="test_none", datatype=AwsMockEmpty)
+    object_none = await object_storage.get(key="test_none", datatype=AwsMockEmpty)
     assert object_none is None
-    location = await object_store.store(key="test", value=test_aws)
+    location = await object_storage.store(key="test", value=expected_aws_mock_data)
     assert location == "test.json"
-    object_get = await object_store.get(key="test", datatype=AwsMockData)
-    assert object_get == test_aws
-    items = await object_store.list_objects()
-    assert items == [
+    object_get = await object_storage.get(key="test", datatype=AwsMockData)
+    assert object_get == expected_aws_mock_data
+    items = await object_storage.list_objects()
+
+    expected_items = [
         ItemLocator(item_id="test", partition_key=None),
         ItemLocator(item_id="test_none", partition_key=None),
     ]
+    for expected_item in expected_items:
+        if expected_item not in items:
+            assert False, f"Expected item {expected_item} not found in items list"
 
 
 @pytest.mark.asyncio
 async def test_objects_with_partition_key(moto_server, monkeypatch):
     """
     This test verifies the behavior of object storage operations when using
-    AWS credentials from environment variables.
+    partition_dateformat.
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
@@ -91,33 +95,36 @@ async def test_objects_with_partition_key(moto_server, monkeypatch):
             endpoint_url="http://localhost:9002", region_name="eu-central-1"
         ),
     )
-    object_store = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings)
 
-    object_none = await object_store.get(key="test2", datatype=AwsMockData)
+    object_none = await object_storage.get(key="test2", datatype=AwsMockData)
     assert object_none is None
 
-    location = await object_store.store(key="test2", value=test_aws)
-    partition_key = object_store.partition_key(location)
+    location = await object_storage.store(key="test2", value=expected_aws_mock_data)
+    partition_key = object_storage.partition_key(location)
     assert location == f"{partition_key}/test2.json"
 
-    object_get = await object_store.get(
+    object_get = await object_storage.get(
         key="test2", datatype=AwsMockData, partition_key=partition_key
     )
-    assert object_get == test_aws
+    assert object_get == expected_aws_mock_data
 
-    items = await object_store.list_objects("*test2*")
+    items = await object_storage.list_objects("*test2*")
     assert items == [ItemLocator(item_id="test2", partition_key=partition_key)]
 
-    await object_store.delete("test2", partition_key=partition_key)
-    no_file = await object_store.get(
+    await object_storage.delete("test2", partition_key=partition_key)
+    no_file = await object_storage.get(
         key="test2", datatype=AwsMockData, partition_key=partition_key
     )
     assert no_file is None
 
 
 @pytest.mark.asyncio
-async def test_files_related_tasks(moto_server):
-    """Using hardcoded AWS credentials."""
+async def test_files(moto_server):
+    """
+    This test verifies the behavior of file operations when using
+    hardcoded AWS credentials.
+    """
     settings = ObjectStorageSettings(
         bucket="test",
         create_bucket="true",
@@ -130,25 +137,24 @@ async def test_files_related_tasks(moto_server):
             verify="True",
         ),
     )
-    object_store = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings)
 
     binary_file = b"Binary file"
 
-    object_none = await object_store.get_file(file_name="test3.bin")
+    object_none = await object_storage.get_file(file_name="test3.bin")
     assert object_none is None
-    location = await object_store.store_file(
+    location = await object_storage.store_file(
         file_name="test3.bin", value=io.BytesIO(binary_file)
     )
     assert location == "test3.bin"
-    object_get = await object_store.get_file(file_name="test3.bin")
+    object_get = await object_storage.get_file(file_name="test3.bin")
     assert object_get == binary_file
-    items = await object_store.list_files("*.bin")
+    items = await object_storage.list_files("*.bin")
     assert items == [ItemLocator(item_id="test3.bin", partition_key=None)]
 
 
 @pytest.mark.asyncio
 async def test_files_with_partition_keys(moto_server):
-    """Simple getting of client."""
     settings = ObjectStorageSettings(
         bucket="test",
         partition_dateformat="%Y/%m/%d/%H/",
@@ -161,29 +167,27 @@ async def test_files_with_partition_keys(moto_server):
             verify="False",
         ),
     )
-    object_store = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings)
 
     binary_file = b"Binary file"
 
-    object_none = await object_store.get_file(file_name="test4.bin")
+    object_none = await object_storage.get_file(file_name="test4.bin")
     assert object_none is None
 
-    location = await object_store.store_file(
-        file_name="test4.bin", value=io.BytesIO(binary_file)
-    )
-    partition_key = object_store.partition_key(location)
+    location = await object_storage.store_file(file_name="test4.bin", value=binary_file)
+    partition_key = object_storage.partition_key(location)
     assert location == f"{partition_key}/test4.bin"
 
-    file = await object_store.get_file(
+    file = await object_storage.get_file(
         file_name="test4.bin", partition_key=partition_key
     )
     assert file == binary_file
 
-    items = await object_store.list_files("*test4.bin*")
+    items = await object_storage.list_files("*test4.bin*")
     assert items == [ItemLocator(item_id="test4.bin", partition_key=partition_key)]
 
-    await object_store.delete_files("test4.bin", partition_key=partition_key)
-    no_file = await object_store.get_file(
+    await object_storage.delete_files("test4.bin", partition_key=partition_key)
+    no_file = await object_storage.get_file(
         file_name="test4.bin", partition_key=partition_key
     )
     assert no_file is None
@@ -202,22 +206,24 @@ async def test_get_file_chunked(moto_server):
             verify="False",
         ),
     )
-    object_store = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings)
 
     binary_file = b"Binary file"
 
-    location = await object_store.store_file(
-        file_name="test5.bin", value=io.BytesIO(binary_file)
-    )
+    location = await object_storage.store_file(file_name="test5.bin", value=binary_file)
     assert location == "test5.bin"
 
     data = io.BytesIO()
-    async for chunk, file_size in object_store.get_file_chunked(file_name="test5.bin"):
+    async for chunk, file_size in object_storage.get_file_chunked(
+        file_name="test5.bin"
+    ):
         assert file_size == 11
         data.write(chunk)
 
     assert data.getvalue() == b"Binary file"
 
-    async for chunk, file_size in object_store.get_file_chunked(file_name="test6.bin"):
+    async for chunk, file_size in object_storage.get_file_chunked(
+        file_name="test6.bin"
+    ):
         assert file_size == 0
         assert chunk is None

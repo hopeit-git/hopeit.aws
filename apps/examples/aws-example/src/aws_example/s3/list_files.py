@@ -15,6 +15,9 @@ from hopeit.aws.s3 import (
     ObjectStorageSettings,
 )
 
+object_storage: Optional[ObjectStorage] = None
+logger, extra = app_extra_logger()
+
 __steps__ = ["load_all"]
 
 __api__ = event_api(
@@ -32,17 +35,14 @@ __api__ = event_api(
     },
 )
 
-logger, extra = app_extra_logger()
-object_store: Optional[ObjectStorage] = None
-
 
 async def __init_event__(context):
-    global object_store
-    if object_store is None:
+    global object_storage
+    if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
-            key="object_store", datatype=ObjectStorageSettings
+            key="object_storage", datatype=ObjectStorageSettings
         )
-        object_store = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings)
 
 
 async def load_all(
@@ -51,8 +51,8 @@ async def load_all(
     """
     Load objects that match the given wildcard
     """
-    assert object_store
-    logger.info(context, "load_all", extra=extra(path=object_store.bucket))
-    items: List[ItemLocator] = await object_store.list_files(wildcard)
+    assert object_storage
+    logger.info(context, "load_all", extra=extra(path=object_storage.bucket))
+    items: List[ItemLocator] = await object_storage.list_files(wildcard)
 
     return items

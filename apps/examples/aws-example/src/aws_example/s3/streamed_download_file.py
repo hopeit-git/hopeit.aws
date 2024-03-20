@@ -14,10 +14,10 @@ from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 from hopeit.dataobjects import BinaryDownload
 
-__steps__ = ["get_streamed_data"]
+object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()
 
-object_store: Optional[ObjectStorage] = None
+__steps__ = ["get_streamed_data"]
 
 
 @dataclass
@@ -39,12 +39,12 @@ __api__ = event_api(
 
 
 async def __init_event__(context):
-    global object_store
-    if object_store is None:
+    global object_storage
+    if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
-            key="object_store", datatype=ObjectStorageSettings
+            key="object_storage", datatype=ObjectStorageSettings
         )
-        object_store = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings)
 
 
 async def get_streamed_data(
@@ -55,7 +55,7 @@ async def get_streamed_data(
     partition_key: Optional[str] = None,
 ) -> SomeFile:
     """
-    Prepare output file name to be streamd
+    Prepare output file name to be streamed
     """
     return SomeFile(file_name=file_name, partition_key=partition_key)
 
@@ -66,20 +66,20 @@ async def __postprocess__(
     """
     Stream S3 file:
     """
-    assert object_store
+    assert object_storage
     stream_response = None
-    async for chunk, content_length in object_store.get_file_chunked(
+    async for chunk, content_length in object_storage.get_file_chunked(
         file_name=file.file_name, partition_key=file.partition_key
     ):
         if stream_response is None:
             if chunk is None:
                 response.status = 404
-                file_name = (
+                msg = (
                     f"{file.partition_key}/{file.file_name} not found"
                     if file.partition_key
                     else f"{file.file_name} not found"
                 )
-                return file_name
+                return msg
             stream_response = await response.prepare_stream_response(
                 context,
                 content_disposition=f'attachment; filename="{file.file_name}"',

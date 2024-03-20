@@ -11,9 +11,9 @@ from hopeit.app.logger import app_extra_logger
 from hopeit.app.context import EventContext
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 
-from model import Something, User, SomethingParams
+from ..model import Something, User, SomethingParams
 
-object_store: Optional[ObjectStorage] = None
+object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()
 
 __steps__ = ["create_something", "save"]
@@ -29,12 +29,12 @@ __api__ = event_api(
 
 
 async def __init_event__(context):
-    global object_store
-    if object_store is None:
+    global object_storage
+    if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
-            key="object_store", datatype=ObjectStorageSettings
+            key="object_storage", datatype=ObjectStorageSettings
         )
-        object_store = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings)
 
 
 async def create_something(
@@ -57,7 +57,7 @@ async def save(payload: Something, context: EventContext) -> str:
     :param context: EventContext
     """
 
-    assert object_store
+    assert object_storage
     logger.info(context, "saving", extra=extra(something_id=payload.id))
-    ret = await object_store.store(key=payload.id, value=payload)
+    ret = await object_storage.store(key=payload.id, value=payload)
     return f"{ret} saved to s3"

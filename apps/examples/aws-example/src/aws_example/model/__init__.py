@@ -1,6 +1,7 @@
 """
 Data model for aws-example test application
 """
+
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
@@ -10,16 +11,17 @@ from hopeit.dataobjects import dataobject
 
 
 class StatusType(str, Enum):
-    NEW = 'NEW'
-    LOADED = 'LOADED'
-    SUBMITTED = 'SUBMITTED'
-    PROCESSED = 'PROCESSED'
+    NEW = "NEW"
+    LOADED = "LOADED"
+    SUBMITTED = "SUBMITTED"
+    PROCESSED = "PROCESSED"
 
 
 @dataobject
 @dataclass
 class Status:
     """Status change"""
+
     ts: datetime
     type: StatusType
 
@@ -28,6 +30,7 @@ class Status:
 @dataclass
 class User:
     """User information"""
+
     id: str
     name: str
 
@@ -36,6 +39,7 @@ class User:
 @dataclass
 class Something:
     """Example Something event"""
+
     id: str
     user: User
     status: Optional[Status] = None
@@ -46,6 +50,7 @@ class Something:
 @dataclass
 class SomethingParams:
     """Params to create and save Something"""
+
     id: str
     user: str
 
@@ -54,6 +59,7 @@ class SomethingParams:
 @dataclass
 class SomethingNotFound:
     """Item not found in datastore"""
+
     path: str
     id: str
 
@@ -64,12 +70,13 @@ class ItemsInfo:
     """
     Items to read concurrently
     """
+
     item1_id: str
     item2_id: str
     partition_key: str = ""
 
 
-@dataobject(event_id='payload.id', event_ts='payload.status.ts')
+@dataobject(event_id="payload.id", event_ts="payload.status.ts")
 @dataclass
 class SomethingStored:
     path: str

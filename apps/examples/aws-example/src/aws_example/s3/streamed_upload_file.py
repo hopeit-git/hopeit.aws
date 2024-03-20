@@ -14,7 +14,7 @@ from hopeit.app.context import EventContext, PreprocessHook
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 from hopeit.dataobjects import dataobject, BinaryAttachment
 
-object_store: Optional[ObjectStorage] = None
+object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()
 
 
@@ -46,26 +46,26 @@ __api__ = event_api(
 
 
 async def __init_event__(context: EventContext):
-    global object_store
-    if object_store is None:
+    global object_storage
+    if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
-            key="object_store", datatype=ObjectStorageSettings
+            key="object_storage", datatype=ObjectStorageSettings
         )
-        object_store = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings)
 
 
 # pylint: disable=invalid-name
 async def __preprocess__(
     payload: None, context: EventContext, request: PreprocessHook
 ) -> FileUploadInfo:
-    assert object_store
+    assert object_storage
     uploaded_files: List[UploadedFile] = []
     async for file_hook in request.files():
         file_name = f"{file_hook.name}-{file_hook.file_name}"
         logger.info(context, f"Saving {file_name}...")
-        location = await object_store.store_file(file_name=file_name, value=file_hook)
+        location = await object_storage.store_file(file_name=file_name, value=file_hook)
         uploaded_file = UploadedFile(
-            file_hook.name, location, object_store.bucket, size=file_hook.size
+            file_hook.name, location, object_storage.bucket, size=file_hook.size
         )
         uploaded_files.append(uploaded_file)
 

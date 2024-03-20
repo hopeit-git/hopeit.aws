@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "aws-example",
-    "version": "${HOPEIT_APPS_API_VERSION}"
+    "version": "${HOPEIT_AWS_API_VERSION}"
   },
   "plugins": [],
   "engine": {
@@ -13,7 +13,7 @@
     "cors_origin": "*"
   },
   "settings": {
-    "object_store": {
+    "object_storage": {
       "bucket": "hopeit-store",
       "partition_dateformat": "%Y/%m/%d/%H/",
       "connection_config": {
@@ -25,46 +25,46 @@
     }
   },
   "events": {
-    "save_something": {
+    "s3.save_something": {
       "type": "POST",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     },
-    "query_something": {
+    "s3.query_something": {
       "type": "POST",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     },
-    "list_objects": {
+    "s3.list_objects": {
       "type": "GET",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     },
-    "list_files": {
+    "s3.list_files": {
       "type": "GET",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     },
-    "upload_download_file": {
+    "s3.upload_download_file": {
       "type": "GET",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     },
-    "streamed_upload_file": {
+    "s3.streamed_upload_file": {
       "type": "MULTIPART",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     },
-    "streamed_download_file": {
+    "s3.streamed_download_file": {
       "type": "GET",
       "setting_keys": [
-        "object_store"
+        "object_storage"
       ]
     }
   }

@@ -11,9 +11,10 @@ from hopeit.app.api import event_api
 from hopeit.app.context import EventContext, PostprocessHook
 from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
-from model import Something, StatusType, Status, SomethingNotFound
+from ..model import Something, StatusType, Status, SomethingNotFound
 
-object_store: Optional[ObjectStorage] = None
+object_storage: Optional[ObjectStorage] = None
+logger, extra = app_extra_logger()
 
 __steps__ = ["load", "update_status_history"]
 
@@ -29,16 +30,14 @@ __api__ = event_api(
     },
 )
 
-logger, extra = app_extra_logger()
-
 
 async def __init_event__(context):
-    global object_store
-    if object_store is None:
+    global object_storage
+    if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
-            key="object_store", datatype=ObjectStorageSettings
+            key="object_storage", datatype=ObjectStorageSettings
         )
-        object_store = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings)
 
 
 async def load(
@@ -47,7 +46,6 @@ async def load(
     *,
     item_id: str,
     partition_key: str,
-    update_status: bool = False
 ) -> Union[Something, SomethingNotFound]:
     """
     Loads json file from filesystem as `Something` instance
@@ -58,17 +56,17 @@ async def load(
     :return: Loaded `Something` object or SomethingNotFound if not found or validation fails
 
     """
-    assert object_store
+    assert object_storage
     logger.info(
-        context, "load", extra=extra(something_id=item_id, path=object_store.bucket)
+        context, "load", extra=extra(something_id=item_id, path=object_storage.bucket)
     )
-    something = await object_store.get(key=item_id, datatype=Something)
+    something = await object_storage.get(key=item_id, datatype=Something)
 
     if something is None:
         logger.warning(
             context,
             "item not found",
-            extra=extra(something_id=item_id, path=object_store.bucket),
+            extra=extra(something_id=item_id, path=object_storage.bucket),
         )
         return SomethingNotFound(str(partition_key), item_id)
     return something

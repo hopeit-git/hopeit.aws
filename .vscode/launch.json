@@ -18,7 +18,9 @@
                 "OBJECT_STORAGE_SECRET_ACCESS_KEY": "Hopei#Engine#2020",
                 "OBJECT_STORAGE_ENDPOINT_URL": "http://localhost:9000",
                 "OBJECT_STORAGE_SSL": "false",
-            }
+                "HOPEIT_AWS_API_VERSION": "0.1"
+            },
+            "justMyCode": false
         },
     ]
 }

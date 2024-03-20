@@ -4,7 +4,6 @@ Storage/persistence asynchronous stores and gets files from object storage.
 """
 
 import fnmatch
-import io
 from dataclasses import dataclass
 from io import BytesIO
 import os
@@ -16,6 +15,7 @@ from botocore.exceptions import ClientError
 from hopeit.dataobjects import DataObject, dataobject
 from hopeit.dataobjects.payload import Payload
 from hopeit.aws.s3.partition import get_file_partition_key, get_partition_key
+
 
 SUFFIX = ".json"
 S3 = "s3"
@@ -130,7 +130,7 @@ class ObjectStorage(Generic[DataObject]):
         Initialize ObjectStorage with the bucket name and optional partition_dateformat.
         Example:
             ```
-            object_store = await ObjectStorage(bucket).connect(conn_config)
+            object_storage = await ObjectStorage(bucket).connect(conn_config)
             ```
         """
         self.bucket: str = bucket
@@ -153,8 +153,7 @@ class ObjectStorage(Generic[DataObject]):
         """
         Creates a ObjectStorage connection pool
 
-        :param config: ObjectStorageConnConfig
-        :param bucket: str
+        :param config: ConnectionConfig
         """
         assert self.bucket
         self._conn_config = Payload.to_obj(connection_config)
@@ -171,9 +170,9 @@ class ObjectStorage(Generic[DataObject]):
                 if connection_config.region_name or region_name
                 else {}
             )
-            async with self._session.client(S3, **self._conn_config) as object_store:
+            async with self._session.client(S3, **self._conn_config) as object_storage:
                 try:
-                    await object_store.create_bucket(Bucket=self.bucket, **kwargs)
+                    await object_storage.create_bucket(Bucket=self.bucket, **kwargs)
                 except ClientError as e:
                     if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
                         pass
@@ -193,19 +192,20 @@ class ObjectStorage(Generic[DataObject]):
 
         :param key: str
         :param datatype: dataclass implementing @dataobject (@see DataObject)
-        :param partition_key: partition path to be appended to base path
+        :param partition_key, Optional[str]: Optional partition key.
         :return: instance
         """
 
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             try:
                 key = f"{partition_key}/{key}" if partition_key else key
                 file_obj = BytesIO()
-                await object_store.download_fileobj(self.bucket, key + SUFFIX, file_obj)
-                file_obj.seek(0)
-                value = file_obj.read()
-                if len(value):
-                    return Payload.from_json(value.decode(), datatype)
+                await object_storage.download_fileobj(
+                    self.bucket, key + SUFFIX, file_obj
+                )
+                obj = file_obj.getvalue()
+                if len(obj):
+                    return Payload.from_json(obj, datatype)
                 return None
             except ClientError as ex:
                 if ex.response["Error"]["Code"] == "404":
@@ -221,16 +221,16 @@ class ObjectStorage(Generic[DataObject]):
         """
         Download a file from S3 and return its contents as bytes.
 
-        :param file_name: The name of the file to download.
-        :param partition_key: Optional partition key for the file path.
-        :return: The contents of the downloaded file as bytes.
+        :param file_name, str: The name of the file to download.
+        :param partition_key, Optional[str]: Optional partition key.
+        :return: The contents of the requested file as bytes, or None if the file does not exist.
         """
 
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             if self.partition_dateformat:
                 file_name = f"{partition_key}/{file_name}"
             try:
-                obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
+                obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 ret = BytesIO()
                 async for chunk in obj["Body"]:
                     ret.write(chunk)
@@ -249,20 +249,21 @@ class ObjectStorage(Generic[DataObject]):
         """
         Download an object from S3 to a file-like object.
 
-        :param key: object id
+        :param file_name str: object id
+        :param partition_key, Optional[str]: Optional partition key.
 
         The file-like object must be in binary mode.
         This is a managed transfer which will perform a multipart download in
         multiple threads if necessary.
         Usage::
             with open('filename', 'wb') as data:
-                object_storage.get('mykey', data)
+                object_storage.get_file_chunked('mykey', data)
         """
 
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             file_name = f"{partition_key}/{file_name}" if partition_key else file_name
             try:
-                obj = await object_store.get_object(Bucket=self.bucket, Key=file_name)
+                obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 content_length = obj["ContentLength"]
                 async for chunk in obj["Body"]:
                     yield chunk, content_length
@@ -274,36 +275,44 @@ class ObjectStorage(Generic[DataObject]):
 
     async def store(self, *, key: str, value: DataObject) -> str:
         """
-        Upload a file-like object to S3.
+        Upload a dataobject object to S3.
 
-        :param value: File like object
         :param key: object id
+        :param value: File like object
         """
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             file_path = f"{key}{SUFFIX}"
             if self.partition_dateformat:
                 partition_key = get_partition_key(value, self.partition_dateformat)
                 file_path = f"{partition_key}{file_path}"
-            buffer = BytesIO()
-            buffer.write(Payload.to_json(value).encode())
-            buffer.seek(0)
-            await object_store.upload_fileobj(buffer, self.bucket, file_path)
+
+            await object_storage.upload_fileobj(
+                BytesIO(Payload.to_json(value).encode()), self.bucket, file_path
+            )
             return file_path
 
-    async def store_file(self, *, file_name: str, value: io.BytesIO) -> str:
+    async def store_file(self, *, file_name: str, value: Union[bytes, Any]) -> str:
         """
         Stores a file-like object.
 
         :param file_name: str
-        :param value: io.BytesIO, the file-like object to store
+        :param value: bytes or a file-like object to store, it must
+            implement the write method and must accept bytes.
         :return: str file location
         """
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             file_path = file_name
             if self.partition_dateformat:
                 partition_key = get_file_partition_key(self.partition_dateformat)
                 file_path = f"{partition_key}{file_name}"
-            await object_store.upload_fileobj(value, self.bucket, file_path)
+
+            if isinstance(value, bytes):
+                await object_storage.upload_fileobj(
+                    BytesIO(value), self.bucket, file_path
+                )
+            else:
+                await object_storage.upload_fileobj(value, self.bucket, file_path)
+
         return file_path
 
     async def list_objects(self, wildcard: str = "*") -> List[ItemLocator]:
@@ -329,22 +338,24 @@ class ObjectStorage(Generic[DataObject]):
         Delete specified keys
 
         :param keys: str, keys to be deleted
+        :param partition_key, Optional[str]: Optional partition key.
         """
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in keys:
                 key = f"{partition_key}/{key}" if partition_key else key
-                await object_store.delete_object(Bucket=self.bucket, Key=key + SUFFIX)
+                await object_storage.delete_object(Bucket=self.bucket, Key=key + SUFFIX)
 
     async def delete_files(self, *file_names: str, partition_key: Optional[str] = None):
         """
         Delete specified file_names
 
         :param file_names: str, file names to be deleted
+        :param partition_key, Optional[str]: Optional partition key.
         """
-        async with self._session.client(S3, **self._conn_config) as object_store:
+        async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in file_names:
                 key = f"{partition_key}/{key}" if partition_key else key
-                await object_store.delete_object(Bucket=self.bucket, Key=key)
+                await object_storage.delete_object(Bucket=self.bucket, Key=key)
 
     async def list_files(self, wildcard: str = "*") -> List[ItemLocator]:
         """
@@ -365,8 +376,8 @@ class ObjectStorage(Generic[DataObject]):
         """
         A generator function similar to `glob` that lists files in an S3 bucket
         """
-        async with self._session.client(S3, **self._conn_config) as object_store:
-            paginator = object_store.get_paginator("list_objects_v2")
+        async with self._session.client(S3, **self._conn_config) as object_storage:
+            paginator = object_storage.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
                 Bucket=bucket_name,
                 Prefix=prefix,

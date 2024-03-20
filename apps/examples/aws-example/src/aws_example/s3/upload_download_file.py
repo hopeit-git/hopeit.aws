@@ -5,17 +5,17 @@ Uploads file using multipart upload support. Returns metadata Something object.
 ```
 """
 
-from io import BytesIO
 from typing import List, Optional
 from dataclasses import dataclass, field
 
+import aiofiles
 from hopeit.app.api import event_api
 from hopeit.app.logger import app_extra_logger
 from hopeit.app.context import EventContext
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 from hopeit.dataobjects import dataobject
 
-object_store: Optional[ObjectStorage] = None
+object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()
 
 
@@ -47,26 +47,24 @@ __api__ = event_api(
 
 
 async def __init_event__(context: EventContext):
-    global object_store
-    if object_store is None:
+    global object_storage
+    if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
-            key="object_store", datatype=ObjectStorageSettings
+            key="object_storage", datatype=ObjectStorageSettings
         )
-        object_store = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings)
 
 
 async def upload_item(payload: None, context: EventContext) -> str:
     """
     Upload file
     """
-    assert object_store
+    assert object_storage
 
     file_name = "hopeit-iso.png"
     src_file_path = f"./apps/examples/aws-example/resources/{file_name}"
-    with open(src_file_path, "rb") as file:
-        file_path = await object_store.store_file(
-            file_name=file_name, value=BytesIO(file.read())
-        )
+    async with aiofiles.open(src_file_path, "rb") as file:
+        file_path = await object_storage.store_file(file_name=file_name, value=file)
     return file_path
 
 
@@ -74,13 +72,15 @@ async def download_item(file_name: str, context: EventContext) -> str:
     """
     Create Something objects to be returned for each uploaded file
     """
-    assert object_store
+    assert object_storage
     tgt_file_name = "_hopeit-iso.png"
     tgt_file_path = "./apps/examples/aws-example/resources/"
-    partition_key = object_store.partition_key(file_name)
+    partition_key = object_storage.partition_key(file_name)
     file_name = file_name.rsplit("/", 1)[-1]
 
-    data = await object_store.get_file(file_name=file_name, partition_key=partition_key)
+    data = await object_storage.get_file(
+        file_name=file_name, partition_key=partition_key
+    )
     assert data
     with open(f"{tgt_file_path}{tgt_file_name}", "wb") as file:
         file.write(data)
