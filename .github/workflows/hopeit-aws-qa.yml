@@ -1,4 +1,4 @@
-# This workflow will install hopeit.engine dev Python dependencies, run tests in multiple version of Python
+# This workflow will install hopeit.aws dev Python dependencies, run tests in multiple version of Python
 
 name: hopeit.aws QA
 

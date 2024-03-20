@@ -53,3 +53,11 @@ dist-plugin:
 	pip install build && \
 	pwd && \
 	python -m build
+
+pypi-plugin:
+	pip install twine && \
+	python -m twine upload -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)/dist/*
+
+pypi-test-plugin:
+	pip install twine && \
+	python -m twine upload -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --repository testpypi $(PLUGINFOLDER)/dist/*
