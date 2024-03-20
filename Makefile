@@ -6,6 +6,7 @@ deps:
 	cd plugins/aws/s3 && pip install -U -r requirements.txt
 
 dev-deps: deps
+	pip install -U -r apps/examples/aws-example/requirements-dev.txt && \
 	pip install -U -r requirements-dev.txt
 
 lock-requirements: clean dev-deps

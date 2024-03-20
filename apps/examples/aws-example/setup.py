@@ -10,7 +10,6 @@ setuptools.setup(
     packages=["aws_example.model", "aws_example.s3"],
     include_package_data=True,
     python_requires=">=3.8",
-    install_requires=["hopeit.engine[web,cli]", "hopeit.aws.s3", "aiofiles"],
     extras_require={},
     entry_points={},
 )
