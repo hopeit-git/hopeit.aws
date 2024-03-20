@@ -7,4 +7,4 @@ mypy
 flake8
 pylint
 boto3-stubs[s3]
-types-urllib3
+types-aiofiles
