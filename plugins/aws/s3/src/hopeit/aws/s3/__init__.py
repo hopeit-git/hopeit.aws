@@ -80,10 +80,10 @@ class ConnectionConfig:
 @dataclass
 class ObjectStorageSettings:
     """
-    S3 storage plugin.
+    hopeit.aws.s3 `ObjectStorage` settings.
 
     :field: bucket, str: S3 bucket name.
-    :field: partition_dateformat, optional str: date format to be used to prefix file name in order
+    :field: partition_dateformat, optional[str]: date format to be used to prefix file name in order
         to partition saved files to different subfolders based on event_ts(). i.e. "%Y/%m/%d"
         will store each files in a folder `base_path/year/month/day/`
     :field: flush_seconds, float: number of seconds to trigger a flush event to save all current
@@ -127,11 +127,12 @@ class ObjectStorage(Generic[DataObject]):
         create_bucket: bool = False,
     ):
         """
-        Initialize ObjectStorage with the bucket name and optional partition_dateformat.
-        Example:
-            ```
-            object_storage = await ObjectStorage(bucket).connect(conn_config)
-            ```
+        Initialize ObjectStorage with the bucket name and optional partition_dateformat
+
+        :param bucket, str: The name of the S3 bucket to use for storage
+        :param partition_dateformat, Optional[str]: Optional format string for partitioning
+            dates in the S3 bucket.
+        :param create_bucket, bool: Whether to create the S3 bucket if it doesn't exist
         """
         self.bucket: str = bucket
         self.partition_dateformat = (partition_dateformat or "").strip("/")
@@ -139,6 +140,12 @@ class ObjectStorage(Generic[DataObject]):
 
     @classmethod
     async def with_settings(cls, settings: ObjectStorageSettings) -> "ObjectStorage":
+        """
+        Create an ObjectStorage instance with settings
+
+        :param settings, `ObjectStorageSettings`: hopeit.aws.s3 `ObjectStorage` settings
+        :return `ObjectStorage`
+        """
         return await cls(
             bucket=settings.bucket,
             partition_dateformat=settings.partition_dateformat,
@@ -153,7 +160,7 @@ class ObjectStorage(Generic[DataObject]):
         """
         Creates a ObjectStorage connection pool
 
-        :param config: ConnectionConfig
+        :param connection_config: ConnectionConfig
         """
         assert self.bucket
         self._conn_config = Payload.to_obj(connection_config)
@@ -190,9 +197,9 @@ class ObjectStorage(Generic[DataObject]):
         """
         Retrieves value under specified key, converted to datatype
 
-        :param key: str
+        :param key, str
         :param datatype: dataclass implementing @dataobject (@see DataObject)
-        :param partition_key, Optional[str]: Optional partition key.
+        :param partition_key, Optional[str]: Optional partition key
         :return: instance
         """
 
@@ -219,11 +226,11 @@ class ObjectStorage(Generic[DataObject]):
         partition_key: Optional[str] = None,
     ) -> Optional[bytes]:
         """
-        Download a file from S3 and return its contents as bytes.
+        Download a file from S3 and return its contents as bytes
 
-        :param file_name, str: The name of the file to download.
-        :param partition_key, Optional[str]: Optional partition key.
-        :return: The contents of the requested file as bytes, or None if the file does not exist.
+        :param file_name, str: The name of the file to download
+        :param partition_key, Optional[str]: Optional partition key
+        :return: The contents of the requested file as bytes, or None if the file does not exist
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
@@ -247,14 +254,13 @@ class ObjectStorage(Generic[DataObject]):
         partition_key: Optional[str] = None,
     ) -> AsyncIterator[Tuple[Optional[bytes], int]]:
         """
-        Download an object from S3 to a file-like object.
+        Download an object from S3 to a file-like object
 
         :param file_name str: object id
         :param partition_key, Optional[str]: Optional partition key.
 
         The file-like object must be in binary mode.
-        This is a managed transfer which will perform a multipart download in
-        multiple threads if necessary.
+        This is a managed transfer which will perform a multipart download in multiple threads if necessary
         Usage::
             with open('filename', 'wb') as data:
                 object_storage.get_file_chunked('mykey', data)
@@ -275,10 +281,10 @@ class ObjectStorage(Generic[DataObject]):
 
     async def store(self, *, key: str, value: DataObject) -> str:
         """
-        Upload a dataobject object to S3.
+        Upload a @dataobject object to S3
 
         :param key: object id
-        :param value: File like object
+        :param value: hopeit @dataobject
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             file_path = f"{key}{SUFFIX}"
@@ -295,10 +301,10 @@ class ObjectStorage(Generic[DataObject]):
         """
         Stores a file-like object.
 
-        :param file_name: str
-        :param value: bytes or a file-like object to store, it must
+        :param file_name, str
+        :param value, Union[bytes, any]: bytes or a file-like object to store, it must
             implement the write method and must accept bytes.
-        :return: str file location
+        :return, str: file location
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             file_path = file_name
@@ -317,10 +323,10 @@ class ObjectStorage(Generic[DataObject]):
 
     async def list_objects(self, wildcard: str = "*") -> List[ItemLocator]:
         """
-        Retrieves list of objects keys from the file storage
+        Retrieves list of objects keys from the object storage
 
         :param wildcard: allow filter the listing of objects
-        :return: List of objects key
+        :return: List of `ItemLocator` with objects location info
         """
         wildcard = wildcard + SUFFIX
         n_part_comps = len(self.partition_dateformat.split("/"))
@@ -338,7 +344,7 @@ class ObjectStorage(Generic[DataObject]):
         Delete specified keys
 
         :param keys: str, keys to be deleted
-        :param partition_key, Optional[str]: Optional partition key.
+        :param partition_key, Optional[str]: Optional partition key
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in keys:
@@ -350,7 +356,7 @@ class ObjectStorage(Generic[DataObject]):
         Delete specified file_names
 
         :param file_names: str, file names to be deleted
-        :param partition_key, Optional[str]: Optional partition key.
+        :param partition_key, Optional[str]: Optional partition key
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in file_names:
@@ -359,10 +365,10 @@ class ObjectStorage(Generic[DataObject]):
 
     async def list_files(self, wildcard: str = "*") -> List[ItemLocator]:
         """
-        Retrieves list of objects keys from the file storage
+        Retrieves list of files_names from the object storage
 
-        :param wildcard: allow filter the listing of objects
-        :return: List of objects key
+        :param wildcard, str: allow filter the listing of objects
+        :return: List of `ItemLocator` with file location info
         """
         n_part_comps = len(self.partition_dateformat.split("/"))
         item_list = []
@@ -393,8 +399,8 @@ class ObjectStorage(Generic[DataObject]):
         """
         Get the partition key for a given path.
 
-        :param path: str
-        :return str, the extracted partition key.
+        :param path, str
+        :return str: the extracted partition key.
         """
         partition_key = ""
         if self.partition_dateformat:
