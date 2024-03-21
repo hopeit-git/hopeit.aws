@@ -56,8 +56,8 @@ dist-plugin:
 
 pypi-plugin:
 	pip install twine && \
-	python -m twine upload -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)/dist/*
+	python -m twine upload -u=__token__ -p=$(PYPI_API_TOKEN_AWS) --repository pypi $(PLUGINFOLDER)/dist/*
 
 pypi-test-plugin:
 	pip install twine && \
-	python -m twine upload -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --repository testpypi $(PLUGINFOLDER)/dist/*
+	python -m twine upload -u=__token__ -p=$(TEST_PYPI_API_TOKEN_AWS) --repository testpypi $(PLUGINFOLDER)/dist/*
