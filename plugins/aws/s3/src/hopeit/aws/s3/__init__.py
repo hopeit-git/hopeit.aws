@@ -7,7 +7,18 @@ import fnmatch
 from dataclasses import dataclass
 from io import BytesIO
 import os
-from typing import Any, AsyncIterator, Dict, Generic, List, Optional, Tuple, Type, Union
+from typing import (
+    IO,
+    Any,
+    AsyncIterator,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from aioboto3 import Session  # type: ignore
 from botocore.exceptions import ClientError
@@ -83,21 +94,18 @@ class ObjectStorageSettings:
     hopeit.aws.s3 `ObjectStorage` settings.
 
     :field: bucket, str: S3 bucket name.
+    :field prefix, str: Prefix to be used in file names.
     :field: partition_dateformat, optional[str]: date format to be used to prefix file name in order
         to partition saved files to different subfolders based on event_ts(). i.e. "%Y/%m/%d"
         will store each files in a folder `base_path/year/month/day/`
-    :field: flush_seconds, float: number of seconds to trigger a flush event to save all current
-        buffered partitions. Default 0 means flush is not triggered by time.
-    :field: flush_max_size: max number of elements to keep in a partition before forcing a flush.
-        Default 1. A value of 0 will disable flushing by partition size.
+    :field connection_config, `ConnectionConfig`: Connection configuration for S3 client.
     :field: create_bucket: Flag indicating whether to create the bucket if it does not exist.
     """
 
     bucket: str
     connection_config: ConnectionConfig
+    prefix: Optional[str] = None
     partition_dateformat: Optional[str] = None
-    flush_seconds: float = 0.0
-    flush_max_size: int = 1
     create_bucket: Union[bool, str] = True
 
     def __post_init__(self):
@@ -117,12 +125,10 @@ class ObjectStorage(Generic[DataObject]):
     Stores and retrieves dataobjects and files from S3
     """
 
-    _conn_config: Union[Dict[str, Any], List[Any]] = {}
-    _session: Session
-
     def __init__(
         self,
         bucket: str,
+        prefix: Optional[str] = None,
         partition_dateformat: Optional[str] = None,
         create_bucket: bool = False,
     ):
@@ -130,51 +136,71 @@ class ObjectStorage(Generic[DataObject]):
         Initialize ObjectStorage with the bucket name and optional partition_dateformat
 
         :param bucket, str: The name of the S3 bucket to use for storage
+        :param prefix, str: Prefix to be used in file names.
+
         :param partition_dateformat, Optional[str]: Optional format string for partitioning
             dates in the S3 bucket.
         :param create_bucket, bool: Whether to create the S3 bucket if it doesn't exist
         """
         self.bucket: str = bucket
-        self.partition_dateformat = (partition_dateformat or "").strip("/")
-        self._create_bucket = create_bucket
+        self.prefix: Optional[str] = prefix
+        self.partition_dateformat: str = (partition_dateformat or "").strip("/")
+        self.create_bucket: bool = create_bucket
+        self._settings: ObjectStorageSettings
+        self._conn_config: Dict[str, Any]
+        self._session: Session
 
     @classmethod
-    async def with_settings(cls, settings: ObjectStorageSettings) -> "ObjectStorage":
+    def with_settings(
+        cls, settings: Union[ObjectStorageSettings, Dict[str, Any]]
+    ) -> "ObjectStorage":
         """
         Create an ObjectStorage instance with settings
 
-        :param settings, `ObjectStorageSettings`: hopeit.aws.s3 `ObjectStorage` settings
+        :param settings, `ObjectStorageSettings` or Dict[str, Any]:
+            Either an :class:`ObjectStorageSettings` object or a dictionary representing ObjectStorageSettings.
         :return `ObjectStorage`
         """
-        return await cls(
+        if settings and not isinstance(settings, ObjectStorageSettings):
+            settings = Payload.from_obj(settings, ObjectStorageSettings)
+        assert isinstance(settings, ObjectStorageSettings)
+        cls._settings = settings
+        return cls(
             bucket=settings.bucket,
+            prefix=settings.prefix,
             partition_dateformat=settings.partition_dateformat,
             create_bucket=bool(settings.create_bucket),
-        ).connect(connection_config=settings.connection_config)
+        )
 
-    async def connect(
-        self,
-        *,
-        connection_config: ConnectionConfig,
-    ):
+    async def connect(self, *, connection_config: Optional[ConnectionConfig] = None):
         """
         Creates a ObjectStorage connection pool
 
         :param connection_config: ConnectionConfig
         """
         assert self.bucket
-        self._conn_config = Payload.to_obj(connection_config)
+
+        if connection_config and isinstance(connection_config, Dict):
+            connection_config = Payload.from_obj(connection_config, ConnectionConfig)
+
+        self._conn_config = Payload.to_obj(  # type: ignore
+            connection_config if connection_config else self._settings.connection_config
+        )
         self._session = Session()
         region_name = os.getenv("AWS_DEFAULT_REGION")
-        if self._create_bucket:
+        if region_name:
+            self._conn_config["region_name"] = self._conn_config.get(
+                "region_name", region_name
+            )
+
+        if self.create_bucket:
             kwargs = (
                 {
                     "CreateBucketConfiguration": {
-                        "LocationConstraint": connection_config.region_name
-                        or region_name
+                        "LocationConstraint": self._conn_config["region_name"]
                     }
                 }
-                if connection_config.region_name or region_name
+                if self._conn_config.get("region_name", None) is not None
                 else {}
             )
             async with self._session.client(S3, **self._conn_config) as object_storage:
@@ -293,17 +319,21 @@ class ObjectStorage(Generic[DataObject]):
                 file_path = f"{partition_key}{file_path}"
 
             await object_storage.upload_fileobj(
-                BytesIO(Payload.to_json(value).encode()), self.bucket, file_path
+                BytesIO(Payload.to_json(value).encode()),
+                Bucket=self.bucket,
+                Key=file_path,
             )
             return file_path
 
-    async def store_file(self, *, file_name: str, value: Union[bytes, Any]) -> str:
+    async def store_file(
+        self, *, file_name: str, value: Union[bytes, IO[bytes], Any]
+    ) -> str:
         """
-        Stores a file-like object.
+        Stores bytes or a file-like object.
 
         :param file_name, str
         :param value, Union[bytes, any]: bytes or a file-like object to store, it must
-            implement the write method and must accept bytes.
+            implement the read method and must return bytes.
         :return, str: file location
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
@@ -314,10 +344,12 @@ class ObjectStorage(Generic[DataObject]):
 
             if isinstance(value, bytes):
                 await object_storage.upload_fileobj(
-                    BytesIO(value), self.bucket, file_path
+                    BytesIO(value), Bucket=self.bucket, Key=file_path
                 )
             else:
-                await object_storage.upload_fileobj(value, self.bucket, file_path)
+                await object_storage.upload_fileobj(
+                    value, Bucket=self.bucket, Key=file_path
+                )
 
         return file_path
 
@@ -332,7 +364,7 @@ class ObjectStorage(Generic[DataObject]):
         n_part_comps = len(self.partition_dateformat.split("/"))
 
         item_list = []
-        async for key in self._aioglob(self.bucket, "", True, wildcard=wildcard):
+        async for key in self._aioglob(True, wildcard=wildcard):
             item_list.append(key)
         return [
             self._get_item_locator(item_path, n_part_comps, SUFFIX)
@@ -372,21 +404,21 @@ class ObjectStorage(Generic[DataObject]):
         """
         n_part_comps = len(self.partition_dateformat.split("/"))
         item_list = []
-        async for key in self._aioglob(self.bucket, "", True, wildcard=wildcard):
+        async for key in self._aioglob(True, wildcard=wildcard):
             item_list.append(key)
         return [
             self._get_item_locator(item_path, n_part_comps) for item_path in item_list
         ]
 
-    async def _aioglob(self, bucket_name, prefix="", recursive=False, wildcard=None):
+    async def _aioglob(self, recursive: bool = False, wildcard: Optional[str] = None):
         """
         A generator function similar to `glob` that lists files in an S3 bucket
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             paginator = object_storage.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
-                Bucket=bucket_name,
-                Prefix=prefix,
+                Bucket=self.bucket,
+                Prefix=self.prefix if self.prefix else "",
                 Delimiter="/" if not recursive else "",
             ):
                 for content in result.get("Contents", []):

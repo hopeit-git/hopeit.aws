@@ -1,5 +1,6 @@
 import io
 from dataclasses import dataclass
+from time import sleep
 from typing import Optional
 
 import pytest
@@ -18,6 +19,7 @@ from moto.server import ThreadedMotoServer
 def moto_server():
     server = ThreadedMotoServer(port=9002)
     server.start()
+    sleep(1)
     yield server
     server.stop()
 
@@ -52,7 +54,7 @@ async def test_objects(moto_server, monkeypatch):
         bucket="test",
         connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
     )
-    object_storage = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     object_none = await object_storage.get(key="test", datatype=AwsMockData)
     assert object_none is None
@@ -95,7 +97,7 @@ async def test_objects_with_partition_key(moto_server, monkeypatch):
             endpoint_url="http://localhost:9002", region_name="eu-central-1"
         ),
     )
-    object_storage = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     object_none = await object_storage.get(key="test2", datatype=AwsMockData)
     assert object_none is None
@@ -137,7 +139,7 @@ async def test_files(moto_server):
             verify="True",
         ),
     )
-    object_storage = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     binary_file = b"Binary file"
 
@@ -167,7 +169,7 @@ async def test_files_with_partition_keys(moto_server):
             verify="False",
         ),
     )
-    object_storage = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     binary_file = b"Binary file"
 
@@ -206,7 +208,7 @@ async def test_get_file_chunked(moto_server):
             verify="False",
         ),
     )
-    object_storage = await ObjectStorage.with_settings(settings)
+    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     binary_file = b"Binary file"
 

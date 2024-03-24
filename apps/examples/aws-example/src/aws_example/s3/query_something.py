@@ -37,7 +37,7 @@ async def __init_event__(context):
         settings: ObjectStorageSettings = context.settings(
             key="object_storage", datatype=ObjectStorageSettings
         )
-        object_storage = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(settings).connect()
 
 
 async def load(

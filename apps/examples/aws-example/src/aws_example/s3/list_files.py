@@ -12,7 +12,6 @@ from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import (
     ItemLocator,
     ObjectStorage,
-    ObjectStorageSettings,
 )
 
 object_storage: Optional[ObjectStorage] = None
@@ -39,10 +38,9 @@ __api__ = event_api(
 async def __init_event__(context):
     global object_storage
     if object_storage is None:
-        settings: ObjectStorageSettings = context.settings(
-            key="object_storage", datatype=ObjectStorageSettings
-        )
-        object_storage = await ObjectStorage.with_settings(settings)
+        object_storage = await ObjectStorage.with_settings(
+            context.settings.extras["object_storage"]
+        ).connect()
 
 
 async def load_all(
