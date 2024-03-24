@@ -1,0 +1,71 @@
+{
+  "app": {
+    "name": "aws-example",
+    "version": "${HOPEIT_AWS_API_VERSION}"
+  },
+  "plugins": [],
+  "engine": {
+    "import_modules": [
+      "aws_example"
+    ],
+    "read_stream_timeout": 1000,
+    "read_stream_interval": 1000,
+    "cors_origin": "*"
+  },
+  "settings": {
+    "object_storage": {
+      "bucket": "hopeit-store",
+      "partition_dateformat": "%Y/%m/%d/%H/",
+      "connection_config": {
+        "endpoint_url": "${OBJECT_STORAGE_ENDPOINT_URL}",
+        "aws_access_key_id": "${OBJECT_STORAGE_ACCESS_KEY_ID}",
+        "aws_secret_access_key": "${OBJECT_STORAGE_SECRET_ACCESS_KEY}",
+        "use_ssl": "${OBJECT_STORAGE_SSL}"
+      }
+    }
+  },
+  "events": {
+    "s3.save_something": {
+      "type": "POST",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
+    "s3.query_something": {
+      "type": "POST",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
+    "s3.list_objects": {
+      "type": "GET",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
+    "s3.list_files": {
+      "type": "GET",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
+    "s3.upload_download_file": {
+      "type": "GET",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
+    "s3.streamed_upload_file": {
+      "type": "MULTIPART",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
+    "s3.streamed_download_file": {
+      "type": "GET",
+      "setting_keys": [
+        "object_storage"
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+moto[server]
+pytest
+pytest-asyncio
+pytest-cov
+black
+mypy
+flake8
+pylint
+boto3-stubs[s3]
+types-aiofiles

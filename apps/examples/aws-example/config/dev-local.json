@@ -1,0 +1,15 @@
+{
+  "logging": {
+    "log_level": "DEBUG",
+    "log_path": "work/logs/apps/"
+  },
+  "auth": {
+    "auth_passphrase": "dev-local",
+    "secrets_location": ".secrets/",
+    "create_keys": true,
+    "domain": "localhost"
+  },
+  "api": {
+    "docs_path": "/api/docs"
+  }
+}
