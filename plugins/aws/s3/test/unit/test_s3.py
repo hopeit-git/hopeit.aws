@@ -122,6 +122,48 @@ async def test_objects_with_partition_key(moto_server, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_objects_with_partition_key_with_prefix(moto_server, monkeypatch):
+    """
+    This test verifies the behavior of object storage operations when using
+    partition_dateformat.
+    """
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
+
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix="my-prefix/",
+        partition_dateformat="%Y/%m/%d/%H/",
+        connection_config=ConnectionConfig(
+            endpoint_url="http://localhost:9002", region_name="eu-central-1"
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+
+    object_none = await object_storage.get(key="test2", datatype=AwsMockData)
+    assert object_none is None
+
+    location = await object_storage.store(key="test2", value=expected_aws_mock_data)
+    partition_key = object_storage.partition_key(location)
+    assert location == f"{settings.prefix}{partition_key}/test2.json"
+
+    object_get = await object_storage.get(
+        key="test2", datatype=AwsMockData, partition_key=partition_key
+    )
+    assert object_get == expected_aws_mock_data
+
+    items = await object_storage.list_objects("*test2*")
+    assert items == [ItemLocator(item_id="test2", partition_key=partition_key)]
+
+    await object_storage.delete("test2", partition_key=partition_key)
+    no_file = await object_storage.get(
+        key="test2", datatype=AwsMockData, partition_key=partition_key
+    )
+    assert no_file is None
+
+
+@pytest.mark.asyncio
 async def test_files(moto_server):
     """
     This test verifies the behavior of file operations when using
@@ -179,6 +221,47 @@ async def test_files_with_partition_keys(moto_server):
     location = await object_storage.store_file(file_name="test4.bin", value=binary_file)
     partition_key = object_storage.partition_key(location)
     assert location == f"{partition_key}/test4.bin"
+
+    file = await object_storage.get_file(
+        file_name="test4.bin", partition_key=partition_key
+    )
+    assert file == binary_file
+
+    items = await object_storage.list_files("*test4.bin*")
+    assert items == [ItemLocator(item_id="test4.bin", partition_key=partition_key)]
+
+    await object_storage.delete_files("test4.bin", partition_key=partition_key)
+    no_file = await object_storage.get_file(
+        file_name="test4.bin", partition_key=partition_key
+    )
+    assert no_file is None
+
+
+@pytest.mark.asyncio
+async def test_files_with_partition_keys_with_prefix(moto_server):
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix="prefix2/",
+        partition_dateformat="%Y/%m/%d/%H/",
+        connection_config=ConnectionConfig(
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopei#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
+            use_ssl="False",
+            verify="False",
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+
+    binary_file = b"Binary file"
+
+    object_none = await object_storage.get_file(file_name="test4.bin")
+    assert object_none is None
+
+    location = await object_storage.store_file(file_name="test4.bin", value=binary_file)
+    partition_key = object_storage.partition_key(location)
+    assert location == f"{settings.prefix}{partition_key}/test4.bin"
 
     file = await object_storage.get_file(
         file_name="test4.bin", partition_key=partition_key

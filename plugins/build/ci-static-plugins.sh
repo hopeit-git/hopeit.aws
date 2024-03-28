@@ -11,7 +11,7 @@ export MYPYPATH=plugins/aws/s3/src && python3 -m mypy --namespace-packages -p ho
 code+=$?
 export MYPYPATH=plugins/aws/s3/src && python3 -m mypy --namespace-packages plugins/aws/s3/test/unit
 code+=$?
-python3 -m flake8 --max-line-length=120 plugins/aws/s3/src/hopeit/aws/s3 plugins/aws/s3/test/unit
+python3 -m flake8 plugins/aws/s3/src/hopeit/aws/s3 plugins/aws/s3/test/unit
 code+=$?
 python3 -m pylint plugins/aws/s3/src/hopeit/aws/s3
 code+=$?

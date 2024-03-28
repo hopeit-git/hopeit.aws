@@ -158,7 +158,8 @@ class ObjectStorage(Generic[DataObject]):
         Create an ObjectStorage instance with settings
 
         :param settings, `ObjectStorageSettings` or Dict[str, Any]:
-            Either an :class:`ObjectStorageSettings` object or a dictionary representing ObjectStorageSettings.
+            Either an :class:`ObjectStorageSettings` object or a dictionary
+            representing ObjectStorageSettings.
         :return `ObjectStorage`
         """
         if settings and not isinstance(settings, ObjectStorageSettings):
@@ -232,6 +233,7 @@ class ObjectStorage(Generic[DataObject]):
         async with self._session.client(S3, **self._conn_config) as object_storage:
             try:
                 key = f"{partition_key}/{key}" if partition_key else key
+                key = f"{'' if not self.prefix else self.prefix}{key}"
                 file_obj = BytesIO()
                 await object_storage.download_fileobj(
                     self.bucket, key + SUFFIX, file_obj
@@ -261,7 +263,7 @@ class ObjectStorage(Generic[DataObject]):
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
             if self.partition_dateformat:
-                file_name = f"{partition_key}/{file_name}"
+                file_name = f"{'' if not self.prefix else self.prefix}{partition_key}/{file_name}"
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 ret = BytesIO()
@@ -293,7 +295,11 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            file_name = f"{partition_key}/{file_name}" if partition_key else file_name
+            file_name = (
+                f"{'' if not self.prefix else self.prefix}{partition_key}/{file_name}"
+                if partition_key
+                else file_name
+            )
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 content_length = obj["ContentLength"]
@@ -317,7 +323,7 @@ class ObjectStorage(Generic[DataObject]):
             if self.partition_dateformat:
                 partition_key = get_partition_key(value, self.partition_dateformat)
                 file_path = f"{partition_key}{file_path}"
-
+            file_path = f"{'' if not self.prefix else self.prefix}{file_path}"
             await object_storage.upload_fileobj(
                 BytesIO(Payload.to_json(value).encode()),
                 Bucket=self.bucket,
@@ -342,15 +348,19 @@ class ObjectStorage(Generic[DataObject]):
                 partition_key = get_file_partition_key(self.partition_dateformat)
                 file_path = f"{partition_key}{file_name}"
 
+            file_path = f"{'' if not self.prefix else self.prefix}{file_path}"
             if isinstance(value, bytes):
                 await object_storage.upload_fileobj(
-                    BytesIO(value), Bucket=self.bucket, Key=file_path
+                    BytesIO(value),
+                    Bucket=self.bucket,
+                    Key=file_path,
                 )
             else:
                 await object_storage.upload_fileobj(
-                    value, Bucket=self.bucket, Key=file_path
+                    value,
+                    Bucket=self.bucket,
+                    Key=file_path,
                 )
-
         return file_path
 
     async def list_objects(self, wildcard: str = "*") -> List[ItemLocator]:
@@ -381,7 +391,10 @@ class ObjectStorage(Generic[DataObject]):
         async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in keys:
                 key = f"{partition_key}/{key}" if partition_key else key
-                await object_storage.delete_object(Bucket=self.bucket, Key=key + SUFFIX)
+                await object_storage.delete_object(
+                    Bucket=self.bucket,
+                    Key=f"{'' if not self.prefix else self.prefix}{key + SUFFIX}",
+                )
 
     async def delete_files(self, *file_names: str, partition_key: Optional[str] = None):
         """
@@ -393,7 +406,10 @@ class ObjectStorage(Generic[DataObject]):
         async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in file_names:
                 key = f"{partition_key}/{key}" if partition_key else key
-                await object_storage.delete_object(Bucket=self.bucket, Key=key)
+                await object_storage.delete_object(
+                    Bucket=self.bucket,
+                    Key=f"{'' if not self.prefix else self.prefix}{key}",
+                )
 
     async def list_files(self, wildcard: str = "*") -> List[ItemLocator]:
         """
@@ -418,7 +434,7 @@ class ObjectStorage(Generic[DataObject]):
             paginator = object_storage.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
                 Bucket=self.bucket,
-                Prefix=self.prefix if self.prefix else "",
+                Prefix="" if not self.prefix else self.prefix,
                 Delimiter="/" if not recursive else "",
             ):
                 for content in result.get("Contents", []):
@@ -437,7 +453,8 @@ class ObjectStorage(Generic[DataObject]):
         partition_key = ""
         if self.partition_dateformat:
             partition_key = path.rsplit("/", 1)[0]
-        return partition_key
+        ret = partition_key if not self.prefix else partition_key[len(self.prefix) :]
+        return ret
 
     def _get_item_locator(
         self, item_path: str, n_part_comps: int, suffix: Optional[str] = None
@@ -445,7 +462,7 @@ class ObjectStorage(Generic[DataObject]):
         """This method generates an `ItemLocator` object from a given `item_path`"""
         comps = item_path.split("/")
         partition_key = (
-            "/".join(comps[-n_part_comps - 1: -1])
+            "/".join(comps[(-n_part_comps - 1) : -1])
             if self.partition_dateformat
             else None
         )
