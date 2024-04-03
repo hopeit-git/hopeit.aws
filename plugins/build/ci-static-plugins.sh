@@ -6,6 +6,10 @@ declare -i code=0
 
 if [ "$1" == "" ] || [ "aws/s3" = "$1" ] ; then
 echo "aws/s3"
+isort plugins/aws/s3/src/
+black plugins/aws/s3/src/
+isort plugins/aws/s3/test/
+black plugins/aws/s3/test/
 export MYPYPATH=plugins/aws/s3/src && python3 -m mypy  --install-types --non-interactive --namespace-packages -p hopeit.aws.s3
 export MYPYPATH=plugins/aws/s3/src && python3 -m mypy --namespace-packages -p hopeit.aws.s3
 code+=$?

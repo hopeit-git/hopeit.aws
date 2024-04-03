@@ -4,14 +4,15 @@ AWS Example: Query Something
 Loads Something from s3
 """
 
-from typing import Union, Optional
 from datetime import datetime, timezone
+from typing import Optional, Union
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext, PostprocessHook
 from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
-from ..model import Something, StatusType, Status, SomethingNotFound
+
+from ..model import Something, SomethingNotFound, Status, StatusType
 
 object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()

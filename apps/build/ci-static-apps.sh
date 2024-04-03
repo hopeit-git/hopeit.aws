@@ -4,6 +4,10 @@ echo "========================"
 
 declare -i code=0
 echo "apps/aws-example"
+isort apps/examples/aws-example/src/
+black apps/examples/aws-example/src/
+isort apps/examples/aws-example/test/
+black apps/examples/aws-example/test/
 export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m mypy  --install-types  --check-untyped-defs --non-interactive --namespace-packages -p  aws_example
 export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m mypy  --check-untyped-defs  --namespace-packages -p  aws_example
 code+=$?

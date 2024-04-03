@@ -2,10 +2,10 @@
 Data model for aws-example test application
 """
 
-from datetime import datetime
-from typing import List, Optional
-from enum import Enum
 from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import List, Optional
 
 from hopeit.dataobjects import dataobject
 

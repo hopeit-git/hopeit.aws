@@ -4,9 +4,9 @@ Storage/persistence asynchronous stores and gets files from object storage.
 """
 
 import fnmatch
+import os
 from dataclasses import dataclass
 from io import BytesIO
-import os
 from typing import (
     IO,
     Any,
@@ -22,11 +22,10 @@ from typing import (
 
 from aioboto3 import Session  # type: ignore
 from botocore.exceptions import ClientError
-
 from hopeit.dataobjects import DataObject, dataobject
 from hopeit.dataobjects.payload import Payload
-from .partition import get_file_partition_key, get_partition_key
 
+from .partition import get_file_partition_key, get_partition_key
 
 SUFFIX = ".json"
 S3 = "s3"
