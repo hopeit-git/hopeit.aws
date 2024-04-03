@@ -4,6 +4,7 @@ echo "========================"
 
 declare -i code=0
 echo "apps/aws-example"
+export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m mypy  --install-types  --check-untyped-defs --non-interactive --namespace-packages -p  aws_example
 export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m mypy  --check-untyped-defs  --namespace-packages -p  aws_example
 code+=$?
 python3 -m flake8 apps/examples/aws-example/src/

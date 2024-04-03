@@ -38,12 +38,15 @@ test-plugins:
 check-plugins:
 	/bin/bash plugins/build/ci-static-plugins.sh $(PLUGINFOLDER)
 
+test-apps:
+	/bin/bash apps/build/ci-test-apps.sh
+	
 check-apps:
 	/bin/bash apps/build/ci-static-apps.sh $(PLUGINFOLDER)
 
 check: check-plugins check-apps
 
-test: test-plugins
+test: test-plugins test-apps
 
 qa: test check
 	echo "DONE."

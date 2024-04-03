@@ -10,7 +10,8 @@ from hopeit.app.api import event_api
 from hopeit.app.context import EventContext
 from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
-from ..model import Something
+
+from aws_example.model import Something
 
 object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()

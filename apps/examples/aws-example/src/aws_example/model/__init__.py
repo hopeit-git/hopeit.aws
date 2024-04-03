@@ -35,7 +35,7 @@ class User:
     name: str
 
 
-@dataobject
+@dataobject(event_ts="status.ts")
 @dataclass
 class Something:
     """Example Something event"""
