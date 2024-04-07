@@ -11,6 +11,7 @@ from hopeit.aws.s3 import (
     ObjectStorageSettings,
 )
 from hopeit.dataobjects import dataobject
+from hopeit.dataobjects.payload import Payload
 from moto.server import ThreadedMotoServer
 
 
@@ -84,7 +85,7 @@ async def test_objects(moto_server, monkeypatch):
 async def test_objects_with_partition_key(moto_server, monkeypatch):
     """
     This test verifies the behavior of object storage operations when using
-    partition_dateformat.
+    partition_dateformat. Also settings mixed from dict and environment
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
@@ -97,7 +98,8 @@ async def test_objects_with_partition_key(moto_server, monkeypatch):
             endpoint_url="http://localhost:9002", region_name="eu-central-1"
         ),
     )
-    object_storage = await ObjectStorage.with_settings(settings).connect()
+    dict_settings = Payload.to_obj(settings)
+    object_storage = await ObjectStorage.with_settings(dict_settings).connect()
 
     object_none = await object_storage.get(key="test2", datatype=AwsMockData)
     assert object_none is None
@@ -169,19 +171,17 @@ async def test_files(moto_server):
     This test verifies the behavior of file operations when using
     hardcoded AWS credentials.
     """
-    settings = ObjectStorageSettings(
-        bucket="test",
-        create_bucket="true",
-        connection_config=ConnectionConfig(
-            aws_access_key_id="hopeit",
-            aws_secret_access_key="Hopei#Engine#2020",
-            endpoint_url="http://localhost:9002",
-            region_name="eu-central-1",
-            use_ssl=False,
-            verify="True",
-        ),
+
+    object_storage = await ObjectStorage(bucket="test", create_bucket=False).connect(
+        connection_config={
+            "aws_access_key_id": "hopeit",
+            "aws_secret_access_key": "Hopei#Engine#2020",
+            "endpoint_url": "http://localhost:9002",
+            "region_name": "eu-central-1",
+            "use_ssl": False,
+            "verify": "True",
+        }
     )
-    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     binary_file = b"Binary file"
 
@@ -201,6 +201,7 @@ async def test_files(moto_server):
 async def test_files_with_partition_keys(moto_server):
     settings = ObjectStorageSettings(
         bucket="test",
+        create_bucket="true",
         partition_dateformat="%Y/%m/%d/%H/",
         connection_config=ConnectionConfig(
             aws_access_key_id="hopeit",

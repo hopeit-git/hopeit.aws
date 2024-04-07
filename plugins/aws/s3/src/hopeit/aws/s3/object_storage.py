@@ -156,7 +156,7 @@ class ObjectStorage(Generic[DataObject]):
         """
         Create an ObjectStorage instance with settings
 
-        :param settings, `ObjectStorageSettings` or Dict[str, Any]:
+        :param settings, `ObjectStorageSettings` or `Dict[str, Any]`:
             Either an :class:`ObjectStorageSettings` object or a dictionary
             representing ObjectStorageSettings.
         :return `ObjectStorage`
@@ -172,15 +172,20 @@ class ObjectStorage(Generic[DataObject]):
             create_bucket=bool(settings.create_bucket),
         )
 
-    async def connect(self, *, connection_config: Optional[ConnectionConfig] = None):
+    async def connect(
+        self, *, connection_config: Union[ConnectionConfig, Dict[str, Any], None] = None
+    ):
         """
         Creates a ObjectStorage connection pool
 
-        :param connection_config: ConnectionConfig
+        :param connection_config: `ConnectionConfig` or `Dict[str, Any]`:
+            Either an :class: `ConnectionConfig` object or a dictionary
+            representing ConnectionConfig.
+
         """
         assert self.bucket
 
-        if connection_config and isinstance(connection_config, Dict):
+        if connection_config and not isinstance(connection_config, ConnectionConfig):
             connection_config = Payload.from_obj(connection_config, ConnectionConfig)
 
         self._conn_config = Payload.to_obj(  # type: ignore

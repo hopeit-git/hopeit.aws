@@ -268,7 +268,7 @@
     "/api/aws-example/0x1/s3/upload-download-file": {
       "get": {
         "summary": "AWS Example: Upload Download File",
-        "description": "Upload files using Multipart form request",
+        "description": "This example just upload and download files to s2 storage as example of usage",
         "parameters": [
           {
             "name": "X-Track-Request-Id",
@@ -618,7 +618,7 @@
             "type": "string"
           }
         },
-        "x-module-name": "hopeit.aws.s3",
+        "x-module-name": "hopeit.aws.s3.object_storage",
         "description": "ItemLocator(item_id: str, partition_key: Optional[str] = None)"
       },
       "UploadedFile": {
