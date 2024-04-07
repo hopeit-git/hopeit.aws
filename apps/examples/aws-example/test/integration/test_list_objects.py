@@ -1,6 +1,6 @@
 import uuid
 
-import pytest  # type: ignore
+import pytest
 from aws_example.model import Something
 from hopeit.app.config import AppConfig
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
@@ -44,7 +44,9 @@ async def sample_file_id(app_config: AppConfig):
 
 
 @pytest.mark.asyncio
-async def test_list_objects(moto_server: ThreadedMotoServer, app_config: AppConfig):
+async def test_list_objects(
+    moto_server: ThreadedMotoServer, app_config: AppConfig
+):  # pylint: disable=unused-argument
     test_id = await sample_file_id(app_config)
 
     results = await execute_event(

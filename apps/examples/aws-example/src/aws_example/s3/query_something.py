@@ -61,7 +61,9 @@ async def load(
     logger.info(
         context, "load", extra=extra(something_id=item_id, path=object_storage.bucket)
     )
-    something = await object_storage.get(key=item_id, datatype=Something)
+    something = await object_storage.get(
+        key=item_id, partition_key=partition_key, datatype=Something
+    )
 
     if something is None:
         logger.warning(

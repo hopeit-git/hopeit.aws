@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timezone
 
-import pytest  # type: ignore
+import pytest
 from aws_example.model import Something, SomethingParams, Status, StatusType, User
 from hopeit.testing.apps import config
 from moto.server import ThreadedMotoServer
@@ -88,7 +88,7 @@ def patch_env(monkeypatch):
 
 
 @pytest.fixture
-def app_config(patch_env):
+def app_config(patch_env):  # pylint: disable=redefined-outer-name
     return config("apps/examples/aws-example/config/app-config.json")
 
 

@@ -60,14 +60,4 @@ async def load_all(
         )
         if something is not None:
             items.append(something)
-        else:
-            logger.warning(
-                context,
-                "Item not found",
-                extra=extra(
-                    path=object_storage.bucket,
-                    partition_key=item_loc.partition_key,
-                    item_id=item_loc.item_id,
-                ),
-            )
     return items

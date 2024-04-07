@@ -59,5 +59,5 @@ async def save(payload: Something, context: EventContext) -> str:
 
     assert object_storage
     logger.info(context, "saving", extra=extra(something_id=payload.id))
-    ret = await object_storage.store(key=payload.id, value=payload)
-    return f"{ret} saved to s3"
+    path = await object_storage.store(key=payload.id, value=payload)
+    return path

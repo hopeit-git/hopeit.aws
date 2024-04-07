@@ -38,7 +38,7 @@ __steps__ = ["upload_item", "download_item"]
 
 __api__ = event_api(
     summary="AWS Example: Upload Download File",
-    description="Upload files using Multipart form request",
+    description="This example just upload and download files to s2 storage as example of usage",
     responses={
         200: (List[UploadedFile], "list of created Something objects"),
         400: (str, "Missing or invalid fields"),

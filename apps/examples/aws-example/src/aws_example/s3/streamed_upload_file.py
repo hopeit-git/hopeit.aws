@@ -6,7 +6,7 @@ Uploads file using multipart upload support. Returns metadata Something object.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext, PreprocessHook
@@ -57,7 +57,7 @@ async def __init_event__(context: EventContext):
 # pylint: disable=invalid-name
 async def __preprocess__(
     payload: None, context: EventContext, request: PreprocessHook
-) -> FileUploadInfo:
+) -> Union[FileUploadInfo, str]:
     assert object_storage
     uploaded_files: List[UploadedFile] = []
     async for file_hook in request.files():
@@ -68,7 +68,10 @@ async def __preprocess__(
             file_hook.name, location, object_storage.bucket, size=file_hook.size
         )
         uploaded_files.append(uploaded_file)
-
+    args = await request.parsed_args()
+    if "attachment" not in args:
+        request.status = 400
+        return "Missing required fields"
     return FileUploadInfo(uploaded_files=uploaded_files)
 
 
