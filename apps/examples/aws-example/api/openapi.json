@@ -619,7 +619,7 @@
           }
         },
         "x-module-name": "hopeit.aws.s3.object_storage",
-        "description": "ItemLocator(item_id: str, partition_key: Optional[str] = None)"
+        "description": "ItemLocator(item_id: str, partition_key: Union[str, NoneType] = None)"
       },
       "UploadedFile": {
         "type": "object",
