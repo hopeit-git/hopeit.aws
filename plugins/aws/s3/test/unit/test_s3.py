@@ -1,3 +1,7 @@
+"""
+hopeit.aws.s3 tests
+"""
+
 import io
 from dataclasses import dataclass
 from time import sleep
@@ -42,7 +46,7 @@ expected_aws_mock_empty = AwsMockEmpty()
 
 
 @pytest.mark.asyncio
-async def test_objects(moto_server, monkeypatch):
+async def test_objects(moto_server, monkeypatch):  # pylint: disable=W0621,W0613
     """
     This test verifies the behavior of object storage operations when using
     AWS credentials from environment variables.
@@ -199,6 +203,7 @@ async def test_files(moto_server):
 
 @pytest.mark.asyncio
 async def test_files_with_partition_keys(moto_server):
+    """File operations with partition_key"""
     settings = ObjectStorageSettings(
         bucket="test",
         create_bucket="true",
@@ -240,6 +245,7 @@ async def test_files_with_partition_keys(moto_server):
 
 @pytest.mark.asyncio
 async def test_files_with_partition_keys_with_prefix(moto_server):
+    """File operations with partition_key and prefix"""
     settings = ObjectStorageSettings(
         bucket="test",
         prefix="prefix2/",
@@ -281,6 +287,7 @@ async def test_files_with_partition_keys_with_prefix(moto_server):
 
 @pytest.mark.asyncio
 async def test_get_file_chunked(moto_server):
+    """Get file by chunks"""
     settings = ObjectStorageSettings(
         bucket="test",
         connection_config=ConnectionConfig(

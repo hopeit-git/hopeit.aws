@@ -17,7 +17,7 @@ export MYPYPATH=plugins/aws/s3/src && python3 -m mypy --namespace-packages plugi
 code+=$?
 python3 -m flake8 plugins/aws/s3/src/hopeit/aws/s3 plugins/aws/s3/test/unit
 code+=$?
-python3 -m pylint plugins/aws/s3/src/hopeit/aws/s3
+python3 -m pylint plugins/aws/s3/src/hopeit/aws/s3 plugins/aws/s3/test/unit
 code+=$?
 fi
 
