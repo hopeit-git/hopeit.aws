@@ -93,10 +93,10 @@ class ObjectStorageSettings:
     hopeit.aws.s3 `ObjectStorage` settings.
 
     :field: bucket, str: S3 bucket name.
-    :field prefix, str: Prefix to be used in file names.
-    :field: partition_dateformat, optional[str]: date format to be used to prefix file name in order
+    :field prefix, Optional[str]: Prefix to be used in file names.
+    :field: partition_dateformat, Optional[str]: date format to be used to prefix file name in order
         to partition saved files to different subfolders based on event_ts(). i.e. "%Y/%m/%d"
-        will store each files in a folder `base_path/year/month/day/`
+        will store each files in a folder `prefix/year/month/day/`
     :field connection_config, `ConnectionConfig`: Connection configuration for S3 client.
     :field: create_bucket: Flag indicating whether to create the bucket if it does not exist.
     """
@@ -135,8 +135,7 @@ class ObjectStorage(Generic[DataObject]):
         Initialize ObjectStorage with the bucket name and optional partition_dateformat
 
         :param bucket, str: The name of the S3 bucket to use for storage
-        :param prefix, str: Prefix to be used in file names.
-
+        :param prefix, Optional[str]: Prefix to be used in file names.
         :param partition_dateformat, Optional[str]: Optional format string for partitioning
             dates in the S3 bucket.
         :param create_bucket, bool: Whether to create the S3 bucket if it doesn't exist
@@ -147,7 +146,7 @@ class ObjectStorage(Generic[DataObject]):
         self.create_bucket: bool = create_bucket
         self._settings: ObjectStorageSettings
         self._conn_config: Dict[str, Any]
-        self._session: Session
+        self._session: Session = None
 
     @classmethod
     def with_settings(
@@ -164,13 +163,14 @@ class ObjectStorage(Generic[DataObject]):
         if settings and not isinstance(settings, ObjectStorageSettings):
             settings = Payload.from_obj(settings, ObjectStorageSettings)
         assert isinstance(settings, ObjectStorageSettings)
-        cls._settings = settings
-        return cls(
+        obj = cls(
             bucket=settings.bucket,
             prefix=settings.prefix,
             partition_dateformat=settings.partition_dateformat,
             create_bucket=bool(settings.create_bucket),
         )
+        obj._settings = settings
+        return obj
 
     async def connect(
         self, *, connection_config: Union[ConnectionConfig, Dict[str, Any], None] = None
@@ -193,10 +193,8 @@ class ObjectStorage(Generic[DataObject]):
         )
         self._session = Session()
         region_name = os.getenv("AWS_DEFAULT_REGION")
-        if region_name:
-            self._conn_config["region_name"] = self._conn_config.get(
-                "region_name", region_name
-            )
+        if region_name and "region_name" not in self._conn_config:
+            self._conn_config["region_name"] = region_name
 
         if self.create_bucket:
             kwargs = (
