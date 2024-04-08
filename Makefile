@@ -1,24 +1,17 @@
 SRC = $(wildcard src/*.py)
 
-.PHONY: dev check test install clean schemas dist-only
+.PHONY: deps dev-deps clean-plugins install install-examples update-examples-api test-plugins check-plugins test-apps check-apps check test qa dist-plugin pypi-plugin pypi-test-plugin
 
-deps: 
+deps:
 	cd plugins/aws/s3 && pip install -U -r requirements.txt
 
 dev-deps: deps
 	pip install -U -r apps/examples/aws-example/requirements-dev.txt && \
 	pip install -U -r requirements-dev.txt
 
-lock-requirements: clean dev-deps
-	pip freeze > requirements.lock
-
 clean-plugins:
 	cd plugins/aws/s3 && \
 	rm -rf dist build
-
-locked-deps:	
-	pip install --force-reinstall -r requirements.lock && \
-	pip install -U -r requirements-dev.txt
 
 install:
 	cd plugins/aws/s3 && \

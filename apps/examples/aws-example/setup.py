@@ -5,7 +5,7 @@ version = "0.1.0"
 setuptools.setup(
     name="aws_example",
     version=version,
-    description="Hopeit.py Example App",
+    description="hopeit.aws plugins Example App",
     package_dir={"": "src"},
     packages=["aws_example.model", "aws_example.s3"],
     include_package_data=True,

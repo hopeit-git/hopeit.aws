@@ -35,17 +35,6 @@ __all__ = ["ObjectStorage", "ObjectStorageSettings", "ConnectionConfig"]
 SUFFIX = ".json"
 
 
-@dataclass
-class FileInfo:
-    """
-    File info
-    """
-
-    bucket: str
-    file_name: str
-    size: int
-
-
 @dataobject
 @dataclass
 class ConnectionConfig:
@@ -93,10 +82,10 @@ class ObjectStorageSettings:
     hopeit.aws.s3 `ObjectStorage` settings.
 
     :field: bucket, str: S3 bucket name.
-    :field prefix, Optional[str]: Prefix to be used in file names.
+    :field prefix, Optional[str]: Prefix to be used for every element (object or file) stored in the S3 bucket.
     :field: partition_dateformat, Optional[str]: date format to be used to prefix file name in order
         to partition saved files to different subfolders based on event_ts(). i.e. "%Y/%m/%d"
-        will store each files in a folder `prefix/year/month/day/`
+        will store each files in a folder `/year/month/day/`
     :field connection_config, `ConnectionConfig`: Connection configuration for S3 client.
     :field: create_bucket: Flag indicating whether to create the bucket if it does not exist.
     """
@@ -135,7 +124,7 @@ class ObjectStorage(Generic[DataObject]):
         Initialize ObjectStorage with the bucket name and optional partition_dateformat
 
         :param bucket, str: The name of the S3 bucket to use for storage
-        :param prefix, Optional[str]: Prefix to be used in file names.
+        :param prefix, Optional[str]: Prefix to be used for every element (object or file) stored in the S3 bucket.
         :param partition_dateformat, Optional[str]: Optional format string for partitioning
             dates in the S3 bucket.
         :param create_bucket, bool: Whether to create the S3 bucket if it doesn't exist

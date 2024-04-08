@@ -54,8 +54,6 @@ async def test_streamed_upload_file(
 async def test_it_save_something_missing_field(
     moto_server: ThreadedMotoServer,
     app_config,
-    something_params_example,
-    something_upload_example,
 ):  # pylint: disable=unused-argument
 
     fields = {}

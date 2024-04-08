@@ -62,22 +62,3 @@ class SomethingNotFound:
 
     path: str
     id: str
-
-
-@dataobject
-@dataclass
-class ItemsInfo:
-    """
-    Items to read concurrently
-    """
-
-    item1_id: str
-    item2_id: str
-    partition_key: str = ""
-
-
-@dataobject(event_id="payload.id", event_ts="payload.status.ts")
-@dataclass
-class SomethingStored:
-    path: str
-    payload: Something
