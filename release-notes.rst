@@ -5,7 +5,7 @@ Version 0.1.0
 _____________
 - hopeit.aws.s3 (initial release):
 
-  - `ObjectStorage` class for storing and retrieving `@dataobjects` and files from S3 and compatible services.
+  - `ObjectStorage` class to store and retrieve `@dataobjects` and files from S3 and compatible services.
 
   - Support for `prefix` setting to organize and categorize stored data within the S3 bucket.
 
