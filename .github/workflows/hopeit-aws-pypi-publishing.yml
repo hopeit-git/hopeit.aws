@@ -1,0 +1,35 @@
+# This workflow will make hopeit.aws package and deploy on PyPI
+
+name: hopeit.aws PyPI Publishing
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build and publish Python 🐍 distributions 📦 to PyPI
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        make dev-deps
+    - name: QA
+      run: |
+        make qa
+    - name: make plugin aws/s3
+      run: |
+        make PLUGINFOLDER=plugins/aws/s3/ dist-plugin
+    - name: Publish plugin aws/s3 on Test PyPI
+      env: 
+        PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN_AWS }}
+      run: |
+        make PLUGINFOLDER=plugins/aws/s3 pypi-plugin
