@@ -320,3 +320,41 @@ async def test_get_file_chunked(moto_server):
     ):
         assert file_size == 0
         assert chunk is None
+
+
+@pytest.mark.asyncio
+async def test_get_file_chunked_with_prefix(moto_server):
+    """Get file by chunks"""
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix="prefix/",
+        connection_config=ConnectionConfig(
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopei#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
+            use_ssl="False",
+            verify="False",
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+
+    binary_file = b"Binary file"
+
+    location = await object_storage.store_file(file_name="test6.bin", value=binary_file)
+    assert location == "prefix/test6.bin"
+
+    data = io.BytesIO()
+    async for chunk, file_size in object_storage.get_file_chunked(
+        file_name="test6.bin"
+    ):
+        assert file_size == 11
+        data.write(chunk)
+
+    assert data.getvalue() == b"Binary file"
+
+    async for chunk, file_size in object_storage.get_file_chunked(
+        file_name="test7.bin"
+    ):
+        assert file_size == 0
+        assert chunk is None

@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+Version 0.1.1
+_____________
+- hopeit.aws.s3 
+
+   - Fix: missing `prefix` handling in `get_file_chunked`
+
 Version 0.1.0
 _____________
 - hopeit.aws.s3 (initial release):
