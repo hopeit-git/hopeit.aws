@@ -254,7 +254,7 @@ class ObjectStorage(Generic[DataObject]):
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
             if self.partition_dateformat:
-                file_name = f"{'' if not self.prefix else self.prefix}{partition_key}/{file_name}"
+                file_name = f"{self.prefix or ''}{partition_key + '/' if partition_key else ''}{file_name}"
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 ret = BytesIO()
@@ -286,11 +286,7 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            file_name = (
-                f"{'' if not self.prefix else self.prefix}{partition_key}/{file_name}"
-                if partition_key
-                else file_name
-            )
+            file_name = f"{self.prefix or ''}{partition_key + '/' if partition_key else ''}{file_name}"
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 content_length = obj["ContentLength"]
