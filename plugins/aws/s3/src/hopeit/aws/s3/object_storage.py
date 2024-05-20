@@ -200,7 +200,10 @@ class ObjectStorage(Generic[DataObject]):
                 try:
                     await object_storage.create_bucket(Bucket=self.bucket, **kwargs)
                 except ClientError as e:
-                    if e.response["Error"]["Code"] in ["BucketAlreadyOwnedByYou", "BucketAlreadyExists"]:                        
+                    if e.response["Error"]["Code"] in [
+                        "BucketAlreadyOwnedByYou",
+                        "BucketAlreadyExists",
+                    ]:
                         pass
                     else:
                         raise e
@@ -223,9 +226,9 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
+            key = f"{partition_key}/{key}" if partition_key else key
+            key = f"{self.prefix or ''}{key}"
             try:
-                key = f"{partition_key}/{key}" if partition_key else key
-                key = f"{self.prefix or ''}{key}"
                 file_obj = BytesIO()
                 await object_storage.download_fileobj(
                     self.bucket, key + SUFFIX, file_obj
@@ -254,7 +257,6 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-
             file_name = f"{partition_key}/{file_name}" if partition_key else file_name
             file_name = f"{self.prefix or ''}{file_name}"
             try:
