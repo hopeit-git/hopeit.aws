@@ -200,9 +200,7 @@ class ObjectStorage(Generic[DataObject]):
                 try:
                     await object_storage.create_bucket(Bucket=self.bucket, **kwargs)
                 except ClientError as e:
-                    if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
-                        pass
-                    elif e.response["Error"]["Code"] == "BucketAlreadyExists":
+                    if e.response["Error"]["Code"] in ["BucketAlreadyOwnedByYou", "BucketAlreadyExists"]:                        
                         pass
                     else:
                         raise e
@@ -236,10 +234,10 @@ class ObjectStorage(Generic[DataObject]):
                 if len(obj):
                     return Payload.from_json(obj, datatype)
                 return None
-            except ClientError as ex:
-                if ex.response["Error"]["Code"] == "404":
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "404":
                     return None
-                raise ex
+                raise e
 
     async def get_file(
         self,
@@ -456,7 +454,7 @@ class ObjectStorage(Generic[DataObject]):
             if wildcard:
                 dir_path = os.path.dirname(wildcard)
                 if dir_path:
-                    prefix = os.path.join(prefix, dir_path)
+                    prefix = os.path.join(prefix, dir_path) + "/"
 
             paginator = object_storage.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
@@ -466,7 +464,9 @@ class ObjectStorage(Generic[DataObject]):
             ):
                 for content in result.get("Contents", []):
                     key = content["Key"]
-                    if wildcard and not fnmatch.fnmatch(key, wildcard):
+                    if wildcard and not fnmatch.fnmatch(
+                        key, (self.prefix or "") + wildcard
+                    ):
                         continue
                     yield self._prune_prefix(key)
 

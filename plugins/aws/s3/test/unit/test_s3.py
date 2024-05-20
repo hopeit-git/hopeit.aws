@@ -172,20 +172,21 @@ async def test_files(prefix, moto_server):
 @pytest.mark.asyncio
 async def test_files_with_partition_keys(prefix, moto_server):
     """File operations with partition_key"""
-    settings = ObjectStorageSettings(
-        bucket="test",
-        prefix=prefix,
-        create_bucket="true",
-        partition_dateformat="%Y/%m/%d/%H/",
-        connection_config=ConnectionConfig(
-            aws_access_key_id="hopeit",
-            aws_secret_access_key="Hopeit#Engine#2020",
-            endpoint_url="http://localhost:9002",
-            region_name="eu-central-1",
-            use_ssl="False",
-            verify="False",
-        ),
-    )
+    settings = {
+        "bucket": "test",
+        **({"prefix": prefix} if prefix else {}),
+        "create_bucket": "True",
+        "partition_dateformat": "%Y/%m/%d/%H/",
+        "connection_config": {
+            "aws_access_key_id": "hopeit",
+            "aws_secret_access_key": "Hopeit#Engine#2020",
+            "endpoint_url": "http://localhost:9002",
+            "region_name": "eu-central-1",
+            "use_ssl": False,
+            "verify": False,
+        },
+    }
+
     object_storage = await ObjectStorage.with_settings(settings).connect()
 
     binary_file = b"Binary file"
@@ -376,6 +377,9 @@ async def test_list_files(prefix, moto_server):
     nofilter_recursive = await object_storage.list_files(recursive=True)
     filter_no_recursive = await object_storage.list_files(wildcard="*.bin")
     filter_recursive = await object_storage.list_files(wildcard="*.bin", recursive=True)
+    filter_recursive_subdir = await object_storage.list_files(
+        wildcard="sub_dir/*.bin", recursive=True
+    )
 
     assert nofilter_no_recursive == [
         ItemLocator(item_id="test01.bin"),
@@ -402,6 +406,11 @@ async def test_list_files(prefix, moto_server):
         ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
         ItemLocator(item_id="test01.bin"),
         ItemLocator(item_id="test02.bin"),
+    ]
+
+    assert filter_recursive_subdir == [
+        ItemLocator(item_id="test03.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
     ]
 
     await object_storage.delete("test01.bin")
