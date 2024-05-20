@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+Version 0.1.2
+_____________
+- hopeit.aws.s3 
+
+   - Fix: Better `prefix` handling in `get_files`, `list_files`, and `list_objects`. Consistent location return on `store` and `store_file`.
+
 Version 0.1.1
 _____________
 - hopeit.aws.s3 
