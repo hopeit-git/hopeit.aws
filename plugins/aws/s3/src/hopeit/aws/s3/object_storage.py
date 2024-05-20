@@ -10,6 +10,7 @@ from io import BytesIO
 from typing import (
     IO,
     Any,
+    AsyncGenerator,
     AsyncIterator,
     Dict,
     Generic,
@@ -201,6 +202,8 @@ class ObjectStorage(Generic[DataObject]):
                 except ClientError as e:
                     if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
                         pass
+                    elif e.response["Error"]["Code"] == "BucketAlreadyExists":
+                        pass
                     else:
                         raise e
         return self
@@ -224,7 +227,7 @@ class ObjectStorage(Generic[DataObject]):
         async with self._session.client(S3, **self._conn_config) as object_storage:
             try:
                 key = f"{partition_key}/{key}" if partition_key else key
-                key = f"{'' if not self.prefix else self.prefix}{key}"
+                key = f"{self.prefix or ''}{key}"
                 file_obj = BytesIO()
                 await object_storage.download_fileobj(
                     self.bucket, key + SUFFIX, file_obj
@@ -253,8 +256,9 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            if self.partition_dateformat:
-                file_name = f"{self.prefix or ''}{partition_key + '/' if partition_key else ''}{file_name}"
+
+            file_name = f"{partition_key}/{file_name}" if partition_key else file_name
+            file_name = f"{self.prefix or ''}{file_name}"
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 ret = BytesIO()
@@ -316,7 +320,7 @@ class ObjectStorage(Generic[DataObject]):
                 Bucket=self.bucket,
                 Key=file_path,
             )
-            return file_path
+            return self._prune_prefix(file_path)
 
     async def store_file(
         self, *, file_name: str, value: Union[bytes, IO[bytes], Any]
@@ -348,9 +352,11 @@ class ObjectStorage(Generic[DataObject]):
                     Bucket=self.bucket,
                     Key=file_path,
                 )
-        return file_path
+        return self._prune_prefix(file_path)
 
-    async def list_objects(self, wildcard: str = "*") -> List[ItemLocator]:
+    async def list_objects(
+        self, wildcard: str = "*", recursive: bool = False
+    ) -> List[ItemLocator]:
         """
         Retrieves list of objects keys from the object storage
 
@@ -359,9 +365,10 @@ class ObjectStorage(Generic[DataObject]):
         """
         wildcard = wildcard + SUFFIX
         n_part_comps = len(self.partition_dateformat.split("/"))
-
+        if self.partition_dateformat:
+            recursive = True
         item_list = []
-        async for key in self._aioglob(True, wildcard=wildcard):
+        async for key in self._aioglob(wildcard, recursive):
             item_list.append(key)
         return [
             self._get_item_locator(item_path, n_part_comps, SUFFIX)
@@ -398,7 +405,9 @@ class ObjectStorage(Generic[DataObject]):
                     Key=f"{'' if not self.prefix else self.prefix}{key}",
                 )
 
-    async def list_files(self, wildcard: str = "*") -> List[ItemLocator]:
+    async def list_files(
+        self, wildcard: str = "*", recursive: bool = False
+    ) -> List[ItemLocator]:
         """
         Retrieves list of files_names from the object storage
 
@@ -407,28 +416,13 @@ class ObjectStorage(Generic[DataObject]):
         """
         n_part_comps = len(self.partition_dateformat.split("/"))
         item_list = []
-        async for key in self._aioglob(True, wildcard=wildcard):
+        if self.partition_dateformat:
+            recursive = True
+        async for key in self._aioglob(wildcard, recursive):
             item_list.append(key)
         return [
             self._get_item_locator(item_path, n_part_comps) for item_path in item_list
         ]
-
-    async def _aioglob(self, recursive: bool = False, wildcard: Optional[str] = None):
-        """
-        A generator function similar to `glob` that lists files in an S3 bucket
-        """
-        async with self._session.client(S3, **self._conn_config) as object_storage:
-            paginator = object_storage.get_paginator("list_objects_v2")
-            async for result in paginator.paginate(
-                Bucket=self.bucket,
-                Prefix="" if not self.prefix else self.prefix,
-                Delimiter="/" if not recursive else "",
-            ):
-                for content in result.get("Contents", []):
-                    key = content["Key"]
-                    if wildcard and not fnmatch.fnmatch(key, wildcard):
-                        continue
-                    yield key
 
     def partition_key(self, path: str) -> str:
         """
@@ -440,8 +434,41 @@ class ObjectStorage(Generic[DataObject]):
         partition_key = ""
         if self.partition_dateformat:
             partition_key = path.rsplit("/", 1)[0]
-        ret = partition_key if not self.prefix else partition_key[len(self.prefix) :]
-        return ret
+        return partition_key
+
+    async def _aioglob(
+        self,
+        wildcard: Optional[str] = None,
+        recursive: bool = False,
+    ) -> AsyncGenerator[str, None]:
+        """
+        A generator function similar to `glob` that lists files in an S3 bucket
+
+        :param wildcard, Optional[str]: Pattern to match file keys against.
+        :param recursive, bool: If True, lists files recursively.
+
+        :yields: str: The keys of the files that match the criteria.
+        """
+        async with self._session.client(S3, **self._conn_config) as object_storage:
+
+            prefix = self.prefix or ""
+
+            if wildcard:
+                dir_path = os.path.dirname(wildcard)
+                if dir_path:
+                    prefix = os.path.join(prefix, dir_path)
+
+            paginator = object_storage.get_paginator("list_objects_v2")
+            async for result in paginator.paginate(
+                Bucket=self.bucket,
+                Prefix=prefix,
+                Delimiter="" if recursive else "/",
+            ):
+                for content in result.get("Contents", []):
+                    key = content["Key"]
+                    if wildcard and not fnmatch.fnmatch(key, wildcard):
+                        continue
+                    yield self._prune_prefix(key)
 
     def _get_item_locator(
         self, item_path: str, n_part_comps: int, suffix: Optional[str] = None
@@ -450,8 +477,13 @@ class ObjectStorage(Generic[DataObject]):
         comps = item_path.split("/")
         partition_key = (
             "/".join(comps[(-n_part_comps - 1) : -1])
-            if self.partition_dateformat
+            if self.partition_dateformat or len(comps) > 1
             else None
         )
         item_id = comps[-1][: -len(suffix)] if suffix else comps[-1]
         return ItemLocator(item_id=item_id, partition_key=partition_key)
+
+    def _prune_prefix(self, file_path: str) -> str:
+        if self.prefix and file_path.startswith(self.prefix):
+            return file_path.replace(self.prefix, "", 1)
+        return file_path

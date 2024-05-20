@@ -15,7 +15,6 @@ from hopeit.aws.s3 import (
     ObjectStorageSettings,
 )
 from hopeit.dataobjects import dataobject
-from hopeit.dataobjects.payload import Payload
 from moto.server import ThreadedMotoServer
 
 
@@ -45,18 +44,20 @@ expected_aws_mock_data = AwsMockData(test="test_aws")
 expected_aws_mock_empty = AwsMockEmpty()
 
 
+@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
 @pytest.mark.asyncio
-async def test_objects(moto_server, monkeypatch):  # pylint: disable=W0621,W0613
+async def test_objects(prefix, moto_server, monkeypatch):  # pylint: disable=W0621,W0613
     """
     This test verifies the behavior of object storage operations when using
     AWS credentials from environment variables.
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopeit#Engine#2020")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
 
     settings = ObjectStorageSettings(
         bucket="test",
+        prefix=prefix,
         connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
@@ -84,26 +85,30 @@ async def test_objects(moto_server, monkeypatch):  # pylint: disable=W0621,W0613
         if expected_item not in items:
             assert False, f"Expected item {expected_item} not found in items list"
 
+    await object_storage.delete("test")
+    await object_storage.delete("test_none")
 
+
+@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
 @pytest.mark.asyncio
-async def test_objects_with_partition_key(moto_server, monkeypatch):
+async def test_objects_with_partition_key(prefix, moto_server, monkeypatch):
     """
     This test verifies the behavior of object storage operations when using
-    partition_dateformat. Also settings mixed from dict and environment
+    partition_dateformat.
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopeit#Engine#2020")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
 
     settings = ObjectStorageSettings(
         bucket="test",
+        prefix=prefix,
         partition_dateformat="%Y/%m/%d/%H/",
         connection_config=ConnectionConfig(
             endpoint_url="http://localhost:9002", region_name="eu-central-1"
         ),
     )
-    dict_settings = Payload.to_obj(settings)
-    object_storage = await ObjectStorage.with_settings(dict_settings).connect()
+    object_storage = await ObjectStorage.with_settings(settings).connect()
 
     object_none = await object_storage.get(key="test2", datatype=AwsMockData)
     assert object_none is None
@@ -127,59 +132,20 @@ async def test_objects_with_partition_key(moto_server, monkeypatch):
     assert no_file is None
 
 
+@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
 @pytest.mark.asyncio
-async def test_objects_with_partition_key_with_prefix(moto_server, monkeypatch):
-    """
-    This test verifies the behavior of object storage operations when using
-    partition_dateformat.
-    """
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopei#Engine#2020")
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
-
-    settings = ObjectStorageSettings(
-        bucket="test",
-        prefix="my-prefix/",
-        partition_dateformat="%Y/%m/%d/%H/",
-        connection_config=ConnectionConfig(
-            endpoint_url="http://localhost:9002", region_name="eu-central-1"
-        ),
-    )
-    object_storage = await ObjectStorage.with_settings(settings).connect()
-
-    object_none = await object_storage.get(key="test2", datatype=AwsMockData)
-    assert object_none is None
-
-    location = await object_storage.store(key="test2", value=expected_aws_mock_data)
-    partition_key = object_storage.partition_key(location)
-    assert location == f"{settings.prefix}{partition_key}/test2.json"
-
-    object_get = await object_storage.get(
-        key="test2", datatype=AwsMockData, partition_key=partition_key
-    )
-    assert object_get == expected_aws_mock_data
-
-    items = await object_storage.list_objects("*test2*")
-    assert items == [ItemLocator(item_id="test2", partition_key=partition_key)]
-
-    await object_storage.delete("test2", partition_key=partition_key)
-    no_file = await object_storage.get(
-        key="test2", datatype=AwsMockData, partition_key=partition_key
-    )
-    assert no_file is None
-
-
-@pytest.mark.asyncio
-async def test_files(moto_server):
+async def test_files(prefix, moto_server):
     """
     This test verifies the behavior of file operations when using
     hardcoded AWS credentials.
     """
 
-    object_storage = await ObjectStorage(bucket="test", create_bucket=False).connect(
+    object_storage = await ObjectStorage(
+        bucket="test", create_bucket=True, prefix=prefix
+    ).connect(
         connection_config={
             "aws_access_key_id": "hopeit",
-            "aws_secret_access_key": "Hopei#Engine#2020",
+            "aws_secret_access_key": "Hopeit#Engine#2020",
             "endpoint_url": "http://localhost:9002",
             "region_name": "eu-central-1",
             "use_ssl": False,
@@ -199,18 +165,21 @@ async def test_files(moto_server):
     assert object_get == binary_file
     items = await object_storage.list_files("*.bin")
     assert items == [ItemLocator(item_id="test3.bin", partition_key=None)]
+    await object_storage.delete_files("test3.bin")
 
 
+@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
 @pytest.mark.asyncio
-async def test_files_with_partition_keys(moto_server):
+async def test_files_with_partition_keys(prefix, moto_server):
     """File operations with partition_key"""
     settings = ObjectStorageSettings(
         bucket="test",
+        prefix=prefix,
         create_bucket="true",
         partition_dateformat="%Y/%m/%d/%H/",
         connection_config=ConnectionConfig(
             aws_access_key_id="hopeit",
-            aws_secret_access_key="Hopei#Engine#2020",
+            aws_secret_access_key="Hopeit#Engine#2020",
             endpoint_url="http://localhost:9002",
             region_name="eu-central-1",
             use_ssl="False",
@@ -241,96 +210,19 @@ async def test_files_with_partition_keys(moto_server):
         file_name="test4.bin", partition_key=partition_key
     )
     assert no_file is None
+    await object_storage.delete_files("test4.bin")
 
 
+@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
 @pytest.mark.asyncio
-async def test_files_with_partition_keys_with_prefix(moto_server):
-    """File operations with partition_key and prefix"""
-    settings = ObjectStorageSettings(
-        bucket="test",
-        prefix="prefix2/",
-        partition_dateformat="%Y/%m/%d/%H/",
-        connection_config=ConnectionConfig(
-            aws_access_key_id="hopeit",
-            aws_secret_access_key="Hopei#Engine#2020",
-            endpoint_url="http://localhost:9002",
-            region_name="eu-central-1",
-            use_ssl="False",
-            verify="False",
-        ),
-    )
-    object_storage = await ObjectStorage.with_settings(settings).connect()
-
-    binary_file = b"Binary file"
-
-    object_none = await object_storage.get_file(file_name="test4.bin")
-    assert object_none is None
-
-    location = await object_storage.store_file(file_name="test4.bin", value=binary_file)
-    partition_key = object_storage.partition_key(location)
-    assert location == f"{settings.prefix}{partition_key}/test4.bin"
-
-    file = await object_storage.get_file(
-        file_name="test4.bin", partition_key=partition_key
-    )
-    assert file == binary_file
-
-    items = await object_storage.list_files("*test4.bin*")
-    assert items == [ItemLocator(item_id="test4.bin", partition_key=partition_key)]
-
-    await object_storage.delete_files("test4.bin", partition_key=partition_key)
-    no_file = await object_storage.get_file(
-        file_name="test4.bin", partition_key=partition_key
-    )
-    assert no_file is None
-
-
-@pytest.mark.asyncio
-async def test_get_file_chunked(moto_server):
+async def test_get_file_chunked(prefix, moto_server):
     """Get file by chunks"""
     settings = ObjectStorageSettings(
         bucket="test",
+        prefix=prefix,
         connection_config=ConnectionConfig(
             aws_access_key_id="hopeit",
-            aws_secret_access_key="Hopei#Engine#2020",
-            endpoint_url="http://localhost:9002",
-            region_name="eu-central-1",
-            use_ssl="False",
-            verify="False",
-        ),
-    )
-    object_storage = await ObjectStorage.with_settings(settings).connect()
-
-    binary_file = b"Binary file"
-
-    location = await object_storage.store_file(file_name="test5.bin", value=binary_file)
-    assert location == "test5.bin"
-
-    data = io.BytesIO()
-    async for chunk, file_size in object_storage.get_file_chunked(
-        file_name="test5.bin"
-    ):
-        assert file_size == 11
-        data.write(chunk)
-
-    assert data.getvalue() == b"Binary file"
-
-    async for chunk, file_size in object_storage.get_file_chunked(
-        file_name="test6.bin"
-    ):
-        assert file_size == 0
-        assert chunk is None
-
-
-@pytest.mark.asyncio
-async def test_get_file_chunked_with_prefix(moto_server):
-    """Get file by chunks"""
-    settings = ObjectStorageSettings(
-        bucket="test",
-        prefix="prefix/",
-        connection_config=ConnectionConfig(
-            aws_access_key_id="hopeit",
-            aws_secret_access_key="Hopei#Engine#2020",
+            aws_secret_access_key="Hopeit#Engine#2020",
             endpoint_url="http://localhost:9002",
             region_name="eu-central-1",
             use_ssl="False",
@@ -342,7 +234,7 @@ async def test_get_file_chunked_with_prefix(moto_server):
     binary_file = b"Binary file"
 
     location = await object_storage.store_file(file_name="test6.bin", value=binary_file)
-    assert location == "prefix/test6.bin"
+    assert location == "test6.bin"
 
     data = io.BytesIO()
     async for chunk, file_size in object_storage.get_file_chunked(
@@ -358,3 +250,163 @@ async def test_get_file_chunked_with_prefix(moto_server):
     ):
         assert file_size == 0
         assert chunk is None
+
+    await object_storage.delete_files("test6.bin")
+    await object_storage.delete_files("test7.bin")
+
+
+@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.asyncio
+async def test_list(prefix, moto_server):
+    """Get file by chunks"""
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix=prefix,
+        connection_config=ConnectionConfig(
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopeit#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
+            use_ssl="False",
+            verify="False",
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+
+    mock_data = AwsMockData(test="test_aws")
+
+    location = await object_storage.store(key="test01", value=mock_data)
+    assert location == "test01.json"
+
+    location = await object_storage.store(key="test02", value=mock_data)
+    assert location == "test02.json"
+
+    location = await object_storage.store(key="sub_dir/test03", value=mock_data)
+    assert location == "sub_dir/test03.json"
+
+    location = await object_storage.store(key="sub_dir/test04", value=mock_data)
+    assert location == "sub_dir/test04.json"
+
+    nofilter_no_recursive = await object_storage.list_objects()
+    nofilter_recursive = await object_storage.list_objects(recursive=True)
+    filter_no_recursive = await object_storage.list_objects(wildcard="*")
+    filter_recursive = await object_storage.list_objects(wildcard="*", recursive=True)
+
+    assert nofilter_no_recursive == [
+        ItemLocator(item_id="test01"),
+        ItemLocator(item_id="test02"),
+    ]
+
+    assert nofilter_recursive == [
+        ItemLocator(item_id="test03", partition_key="sub_dir"),
+        ItemLocator(item_id="test04", partition_key="sub_dir"),
+        ItemLocator(item_id="test01"),
+        ItemLocator(item_id="test02"),
+    ]
+
+    assert filter_no_recursive == [
+        ItemLocator(item_id="test01"),
+        ItemLocator(item_id="test02"),
+    ]
+
+    assert filter_recursive == [
+        ItemLocator(item_id="test03", partition_key="sub_dir"),
+        ItemLocator(item_id="test04", partition_key="sub_dir"),
+        ItemLocator(item_id="test01"),
+        ItemLocator(item_id="test02"),
+    ]
+
+    await object_storage.delete("test01")
+    await object_storage.delete("test02")
+    await object_storage.delete("sub_dir/test03")
+    await object_storage.delete("sub_dir/test04")
+
+
+@pytest.mark.parametrize("prefix", ["", "some_prefix/"])
+@pytest.mark.asyncio
+async def test_list_files(prefix, moto_server):
+    """Get file by chunks"""
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix=prefix,
+        connection_config=ConnectionConfig(
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopeit#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
+            use_ssl="False",
+            verify="False",
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+
+    binary_file = b"Binary file"
+
+    location = await object_storage.store_file(
+        file_name="test01.bin", value=binary_file
+    )
+    assert location == "test01.bin"
+
+    location = await object_storage.store_file(
+        file_name="test02.bin", value=binary_file
+    )
+    assert location == "test02.bin"
+
+    location = await object_storage.store_file(
+        file_name="test01.tmp", value=binary_file
+    )
+    assert location == "test01.tmp"
+
+    location = await object_storage.store_file(
+        file_name="sub_dir/test03.bin", value=binary_file
+    )
+    assert location == "sub_dir/test03.bin"
+
+    location = await object_storage.store_file(
+        file_name="sub_dir/test04.bin", value=binary_file
+    )
+    assert location == "sub_dir/test04.bin"
+
+    location = await object_storage.store_file(
+        file_name="sub_dir/test01.tmp", value=binary_file
+    )
+    assert location == "sub_dir/test01.tmp"
+
+    nofilter_no_recursive = await object_storage.list_files()
+    nofilter_recursive = await object_storage.list_files(recursive=True)
+    filter_no_recursive = await object_storage.list_files(wildcard="*.bin")
+    filter_recursive = await object_storage.list_files(wildcard="*.bin", recursive=True)
+
+    assert nofilter_no_recursive == [
+        ItemLocator(item_id="test01.bin"),
+        ItemLocator(item_id="test01.tmp"),
+        ItemLocator(item_id="test02.bin"),
+    ]
+
+    assert nofilter_recursive == [
+        ItemLocator(item_id="test01.tmp", partition_key="sub_dir"),
+        ItemLocator(item_id="test03.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="test01.bin"),
+        ItemLocator(item_id="test01.tmp"),
+        ItemLocator(item_id="test02.bin"),
+    ]
+
+    assert filter_no_recursive == [
+        ItemLocator(item_id="test01.bin"),
+        ItemLocator(item_id="test02.bin"),
+    ]
+
+    assert filter_recursive == [
+        ItemLocator(item_id="test03.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="test01.bin"),
+        ItemLocator(item_id="test02.bin"),
+    ]
+
+    await object_storage.delete("test01.bin")
+    await object_storage.delete("test02.bin")
+    await object_storage.delete("test01.tmp")
+    await object_storage.delete("sub_dir/test03.bin")
+    await object_storage.delete("sub_dir/test04.bin")
+    await object_storage.delete("sub_dir/test01.tmp")
