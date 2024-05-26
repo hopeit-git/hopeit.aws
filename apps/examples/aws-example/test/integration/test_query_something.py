@@ -24,6 +24,7 @@ async def sample_file_id(app_config: AppConfig):
     context = create_test_context(app_config, "s3.query_something")
     settings = context.settings(key="object_storage", datatype=ObjectStorageSettings)
     storage = await ObjectStorage.with_settings(settings).connect()
+    await storage.create_bucket()
 
     ret = await storage.store(
         key=test_id1, value=Payload.from_json(json_str, datatype=Something)

@@ -20,6 +20,7 @@ async def sample_file_id(app_config: AppConfig):
     context = create_test_context(app_config, "s3.list_files")
     settings = context.settings(key="object_storage", datatype=ObjectStorageSettings)
     storage: ObjectStorage = await ObjectStorage.with_settings(settings).connect()
+    await storage.create_bucket()
 
     await storage.store_file(file_name=test_id1, value=binary_file1)
     ret = await storage.store_file(file_name=test_id2, value=binary_file2)

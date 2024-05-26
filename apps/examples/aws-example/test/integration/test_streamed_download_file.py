@@ -30,6 +30,7 @@ async def test_streamed_download_file(
     storage = await ObjectStorage.with_settings(
         context.settings.extras["object_storage"]
     ).connect()
+    await storage.create_bucket()
 
     file_path = await storage.store_file(file_name=file_name, value=file)
 

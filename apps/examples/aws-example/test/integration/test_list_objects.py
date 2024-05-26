@@ -32,13 +32,16 @@ async def sample_file_id(app_config: AppConfig):
     context = create_test_context(app_config, "s3.list_objects")
     settings = context.settings(key="object_storage", datatype=ObjectStorageSettings)
     storage = await ObjectStorage.with_settings(settings).connect()
+    await storage.create_bucket()
 
-    await storage.store(
+    ret = await storage.store(
         key=test_id1, value=Payload.from_json(json_str1, datatype=Something)
     )
-    await storage.store(
+    assert ret == f"2020/05/01/00/{test_id1}.json"
+    ret = await storage.store(
         key=test_id2, value=Payload.from_json(json_str2, datatype=Something)
     )
+    assert ret == f"2020/05/01/00/{test_id2}.json"
 
     return test_id
 

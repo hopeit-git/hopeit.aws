@@ -8,6 +8,7 @@ from time import sleep
 from typing import Optional
 
 import pytest
+from botocore.exceptions import ClientError
 from hopeit.aws.s3 import (
     ConnectionConfig,
     ItemLocator,
@@ -44,7 +45,30 @@ expected_aws_mock_data = AwsMockData(test="test_aws")
 expected_aws_mock_empty = AwsMockEmpty()
 
 
-@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.asyncio
+async def test_bucket_creation(moto_server, monkeypatch):  # pylint: disable=W0621,W0613
+    """
+    This test verifies the behavior of object storage operations when using
+    AWS credentials from environment variables.
+    """
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "hopeit")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "Hopeit#Engine#2020")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-central-1")
+
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix="prefix/",
+        connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+
+    assert await object_storage.create_bucket() is True
+    assert await object_storage.create_bucket() is False
+    with pytest.raises(ClientError):
+        await object_storage.create_bucket(check_if_exists=False)
+
+
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_objects(prefix, moto_server, monkeypatch):  # pylint: disable=W0621,W0613
     """
@@ -61,6 +85,7 @@ async def test_objects(prefix, moto_server, monkeypatch):  # pylint: disable=W06
         connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket()
 
     object_none = await object_storage.get(key="test", datatype=AwsMockData)
     assert object_none is None
@@ -89,7 +114,7 @@ async def test_objects(prefix, moto_server, monkeypatch):  # pylint: disable=W06
     await object_storage.delete("test_none")
 
 
-@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_objects_with_partition_key(prefix, moto_server, monkeypatch):
     """
@@ -109,6 +134,7 @@ async def test_objects_with_partition_key(prefix, moto_server, monkeypatch):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket()
 
     object_none = await object_storage.get(key="test2", datatype=AwsMockData)
     assert object_none is None
@@ -123,6 +149,8 @@ async def test_objects_with_partition_key(prefix, moto_server, monkeypatch):
     assert object_get == expected_aws_mock_data
 
     items = await object_storage.list_objects("*test2*")
+    assert items == []
+    items = await object_storage.list_objects("*test2*", recursive=True)
     assert items == [ItemLocator(item_id="test2", partition_key=partition_key)]
 
     await object_storage.delete("test2", partition_key=partition_key)
@@ -132,7 +160,7 @@ async def test_objects_with_partition_key(prefix, moto_server, monkeypatch):
     assert no_file is None
 
 
-@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_files(prefix, moto_server):
     """
@@ -140,9 +168,7 @@ async def test_files(prefix, moto_server):
     hardcoded AWS credentials.
     """
 
-    object_storage = await ObjectStorage(
-        bucket="test", create_bucket=True, prefix=prefix
-    ).connect(
+    object_storage = await ObjectStorage(bucket="test", prefix=prefix).connect(
         connection_config={
             "aws_access_key_id": "hopeit",
             "aws_secret_access_key": "Hopeit#Engine#2020",
@@ -152,6 +178,7 @@ async def test_files(prefix, moto_server):
             "verify": "True",
         }
     )
+    await object_storage.create_bucket()
 
     binary_file = b"Binary file"
 
@@ -168,14 +195,13 @@ async def test_files(prefix, moto_server):
     await object_storage.delete_files("test3.bin")
 
 
-@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_files_with_partition_keys(prefix, moto_server):
     """File operations with partition_key"""
     settings = {
         "bucket": "test",
         **({"prefix": prefix} if prefix else {}),
-        "create_bucket": "True",
         "partition_dateformat": "%Y/%m/%d/%H/",
         "connection_config": {
             "aws_access_key_id": "hopeit",
@@ -188,6 +214,7 @@ async def test_files_with_partition_keys(prefix, moto_server):
     }
 
     object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket()
 
     binary_file = b"Binary file"
 
@@ -204,6 +231,8 @@ async def test_files_with_partition_keys(prefix, moto_server):
     assert file == binary_file
 
     items = await object_storage.list_files("*test4.bin*")
+    assert items == []
+    items = await object_storage.list_files("*test4.bin*", recursive=True)
     assert items == [ItemLocator(item_id="test4.bin", partition_key=partition_key)]
 
     await object_storage.delete_files("test4.bin", partition_key=partition_key)
@@ -214,7 +243,7 @@ async def test_files_with_partition_keys(prefix, moto_server):
     await object_storage.delete_files("test4.bin")
 
 
-@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_get_file_chunked(prefix, moto_server):
     """Get file by chunks"""
@@ -231,6 +260,7 @@ async def test_get_file_chunked(prefix, moto_server):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket()
 
     binary_file = b"Binary file"
 
@@ -256,7 +286,7 @@ async def test_get_file_chunked(prefix, moto_server):
     await object_storage.delete_files("test7.bin")
 
 
-@pytest.mark.parametrize("prefix", [None, "some_prefix/"])
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_list(prefix, moto_server):
     """Get file by chunks"""
@@ -273,6 +303,7 @@ async def test_list(prefix, moto_server):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket()
 
     mock_data = AwsMockData(test="test_aws")
 
@@ -299,8 +330,10 @@ async def test_list(prefix, moto_server):
     ]
 
     assert nofilter_recursive == [
-        ItemLocator(item_id="test03", partition_key="sub_dir"),
-        ItemLocator(item_id="test04", partition_key="sub_dir"),
+        ItemLocator(item_id="sub_dir/test03"),
+        ItemLocator(
+            item_id="sub_dir/test04",
+        ),
         ItemLocator(item_id="test01"),
         ItemLocator(item_id="test02"),
     ]
@@ -311,8 +344,8 @@ async def test_list(prefix, moto_server):
     ]
 
     assert filter_recursive == [
-        ItemLocator(item_id="test03", partition_key="sub_dir"),
-        ItemLocator(item_id="test04", partition_key="sub_dir"),
+        ItemLocator(item_id="sub_dir/test03"),
+        ItemLocator(item_id="sub_dir/test04"),
         ItemLocator(item_id="test01"),
         ItemLocator(item_id="test02"),
     ]
@@ -323,7 +356,7 @@ async def test_list(prefix, moto_server):
     await object_storage.delete("sub_dir/test04")
 
 
-@pytest.mark.parametrize("prefix", ["", "some_prefix/"])
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
 async def test_list_files(prefix, moto_server):
     """Get file by chunks"""
@@ -340,6 +373,7 @@ async def test_list_files(prefix, moto_server):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket()
 
     binary_file = b"Binary file"
 
@@ -388,9 +422,9 @@ async def test_list_files(prefix, moto_server):
     ]
 
     assert nofilter_recursive == [
-        ItemLocator(item_id="test01.tmp", partition_key="sub_dir"),
-        ItemLocator(item_id="test03.bin", partition_key="sub_dir"),
-        ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="sub_dir/test01.tmp"),
+        ItemLocator(item_id="sub_dir/test03.bin"),
+        ItemLocator(item_id="sub_dir/test04.bin"),
         ItemLocator(item_id="test01.bin"),
         ItemLocator(item_id="test01.tmp"),
         ItemLocator(item_id="test02.bin"),
@@ -402,20 +436,20 @@ async def test_list_files(prefix, moto_server):
     ]
 
     assert filter_recursive == [
-        ItemLocator(item_id="test03.bin", partition_key="sub_dir"),
-        ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="sub_dir/test03.bin"),
+        ItemLocator(item_id="sub_dir/test04.bin"),
         ItemLocator(item_id="test01.bin"),
         ItemLocator(item_id="test02.bin"),
     ]
 
     assert filter_recursive_subdir == [
-        ItemLocator(item_id="test03.bin", partition_key="sub_dir"),
-        ItemLocator(item_id="test04.bin", partition_key="sub_dir"),
+        ItemLocator(item_id="sub_dir/test03.bin"),
+        ItemLocator(item_id="sub_dir/test04.bin"),
     ]
 
-    await object_storage.delete("test01.bin")
-    await object_storage.delete("test02.bin")
-    await object_storage.delete("test01.tmp")
-    await object_storage.delete("sub_dir/test03.bin")
-    await object_storage.delete("sub_dir/test04.bin")
-    await object_storage.delete("sub_dir/test01.tmp")
+    await object_storage.delete_files("test01.bin")
+    await object_storage.delete_files("test02.bin")
+    await object_storage.delete_files("test01.tmp")
+    await object_storage.delete_files("sub_dir/test03.bin")
+    await object_storage.delete_files("sub_dir/test04.bin")
+    await object_storage.delete_files("sub_dir/test01.tmp")
