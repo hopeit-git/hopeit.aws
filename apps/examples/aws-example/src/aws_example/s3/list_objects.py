@@ -40,7 +40,6 @@ async def __init_event__(context):
             key="object_storage", datatype=ObjectStorageSettings
         )
         object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
 
 
 async def load_all(

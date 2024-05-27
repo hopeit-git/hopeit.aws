@@ -25,6 +25,12 @@
     }
   },
   "events": {
+    "s3.init": {
+      "type": "SETUP",
+      "setting_keys": [
+        "object_storage"
+      ]
+    },
     "s3.save_something": {
       "type": "POST",
       "setting_keys": [

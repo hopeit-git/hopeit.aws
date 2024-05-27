@@ -38,7 +38,6 @@ async def __init_event__(context):
         object_storage = await ObjectStorage.with_settings(
             context.settings.extras["object_storage"]
         ).connect()
-    await object_storage.create_bucket()
 
 
 async def load_all(
