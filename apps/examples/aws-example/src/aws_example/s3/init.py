@@ -22,21 +22,9 @@ async def init_storage(payload: None, context: EventContext) -> None:
     )
     try:
         object_storage = await ObjectStorage.with_settings(settings).connect()
-        if await object_storage.create_bucket():
-            logger.info(
-                context,
-                f"init_storage: Bucket '{object_storage.bucket}' created.",
-                extra=extra(path=object_storage.bucket),
-            )
-        else:
-            logger.info(
-                context,
-                f"init_storage: Bucket '{object_storage.bucket}' already exists, skip creation.",
-                extra=extra(path=object_storage.bucket),
-            )
-
+        await object_storage.create_bucket(exist_ok=True)
     except EndpointConnectionError as conn_error:
-        logger.warning(
+        logger.error(
             context,
             "init_storage: Connection to Object Storage failed. "
             "Consider starting the MinIO server from docker/docker_compose.yaml.",

@@ -62,10 +62,14 @@ async def test_bucket_creation(moto_server, monkeypatch):  # pylint: disable=W06
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
 
-    assert await object_storage.create_bucket() is True
-    assert await object_storage.create_bucket() is False
-    with pytest.raises(ClientError):
-        await object_storage.create_bucket(check_if_exists=False)
+    await object_storage.create_bucket(exist_ok=True)
+    await object_storage.create_bucket(exist_ok=True)
+
+    with pytest.raises(ClientError) as excinfo:
+        await object_storage.create_bucket()
+
+    assert excinfo.value.operation_name == "CreateBucket"
+    assert excinfo.value.response["Error"]["Code"] == "BucketAlreadyOwnedByYou"
 
 
 @pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
@@ -85,7 +89,7 @@ async def test_objects(prefix, moto_server, monkeypatch):  # pylint: disable=W06
         connection_config=ConnectionConfig(endpoint_url="http://localhost:9002"),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     object_none = await object_storage.get(key="test", datatype=AwsMockData)
     assert object_none is None
@@ -134,7 +138,7 @@ async def test_objects_with_partition_key(prefix, moto_server, monkeypatch):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     object_none = await object_storage.get(key="test2", datatype=AwsMockData)
     assert object_none is None
@@ -178,7 +182,7 @@ async def test_files(prefix, moto_server):
             "verify": "True",
         }
     )
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     binary_file = b"Binary file"
 
@@ -214,7 +218,7 @@ async def test_files_with_partition_keys(prefix, moto_server):
     }
 
     object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     binary_file = b"Binary file"
 
@@ -260,7 +264,7 @@ async def test_get_file_chunked(prefix, moto_server):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     binary_file = b"Binary file"
 
@@ -303,7 +307,7 @@ async def test_list(prefix, moto_server):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     mock_data = AwsMockData(test="test_aws")
 
@@ -373,7 +377,7 @@ async def test_list_files(prefix, moto_server):
         ),
     )
     object_storage = await ObjectStorage.with_settings(settings).connect()
-    await object_storage.create_bucket()
+    await object_storage.create_bucket(exist_ok=True)
 
     binary_file = b"Binary file"
 

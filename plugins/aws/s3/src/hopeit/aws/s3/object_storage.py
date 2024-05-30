@@ -124,9 +124,7 @@ class ObjectStorage(Generic[DataObject]):
             dates in the S3 bucket.
         """
         self.bucket: str = bucket
-        self.prefix: Optional[str] = (
-            (prefix.rstrip("/") + "/") if prefix and prefix != "/" else None
-        )
+        self.prefix: Optional[str] = (prefix.rstrip("/") + "/") if prefix else None
         self.partition_dateformat: str = (partition_dateformat or "").strip("/")
         self._settings: ObjectStorageSettings
         self._conn_config: Dict[str, Any]
@@ -390,7 +388,7 @@ class ObjectStorage(Generic[DataObject]):
             partition_key = path.rsplit("/", 1)[0]
         return partition_key
 
-    async def create_bucket(self, check_if_exists: bool = True) -> bool:
+    async def create_bucket(self, exist_ok: bool = False):
         """
         Creates a bucket in the ObjectStorage if it doesn't already exist,
         based on the `check_if_exists` parameter.
@@ -398,8 +396,7 @@ class ObjectStorage(Generic[DataObject]):
         Note: The `create_bucket` method is provided for convenience and should be avoided in production environments.
 
         :param bucket, str: The name of the bucket to create.
-        :param check_if_exists, bool: Whether to check if the bucket already exists before creating it.
-        :return bool: True if the bucket was created, False if it already existed.
+        :param exist_ok, bool: If False, raises an error if the bucket already exists (default is False).
         """
 
         region_name = os.getenv("AWS_DEFAULT_REGION")
@@ -417,16 +414,15 @@ class ObjectStorage(Generic[DataObject]):
         )
 
         async with self._session.client("s3", **self._conn_config) as object_storage:
-            if check_if_exists:
+            if exist_ok:
                 try:
                     await object_storage.head_bucket(Bucket=self.bucket)
-                    return False  # Bucket already exists
+                    return
                 except ClientError as e:
                     if e.response["Error"]["Code"] != "404":
                         raise e
             try:
                 await object_storage.create_bucket(Bucket=self.bucket, **kwargs)
-                return True  # Bucket was created
             except ClientError as e:
                 raise e
 
@@ -449,7 +445,7 @@ class ObjectStorage(Generic[DataObject]):
             if wildcard:
                 dir_path = Path(wildcard).parent
                 if dir_path != Path("."):
-                    prefix = f"{prefix}{dir_path}/"
+                    prefix += f"{dir_path}/"
 
             paginator = object_storage.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
