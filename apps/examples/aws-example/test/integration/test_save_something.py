@@ -1,20 +1,24 @@
+"""
+aws-example tests
+"""
+
 import os
 
 import pytest
 from aws_example.model import Something
 from hopeit.aws.s3 import ObjectStorage
 from hopeit.aws.s3.partition import get_partition_key
-from hopeit.server.version import APPS_API_VERSION
 from hopeit.testing.apps import create_test_context, execute_event
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
-
-APP_VERSION = APPS_API_VERSION.replace(".", "x")
 
 
 @pytest.mark.asyncio
 async def test_save_something(
     moto_server: ThreadedMotoServer, app_config, something_params_example
-):  # pylint: disable=unused-argument
+):
+    """Test s3.save_something"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
+
     result = await execute_event(
         app_config=app_config,
         event_name="s3.save_something",

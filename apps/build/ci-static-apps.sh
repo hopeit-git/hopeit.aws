@@ -11,9 +11,9 @@ black apps/examples/aws-example/test/
 export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m mypy  --install-types  --check-untyped-defs --non-interactive --namespace-packages -p  aws_example
 export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m mypy  --check-untyped-defs  --namespace-packages -p  aws_example
 code+=$?
-python3 -m flake8 apps/examples/aws-example/src/ apps/examples/aws-example/test/
+python3 -m flake8 apps/examples/aws-example/src/ apps/examples/aws-example/test/integration
 code+=$?
-python3 -m pylint apps/examples/aws-example/src/ apps/examples/aws-example/test/
+python3 -m pylint apps/examples/aws-example/src/ apps/examples/aws-example/test/integration
 code+=$?
 
 if [ $code -gt 0 ]

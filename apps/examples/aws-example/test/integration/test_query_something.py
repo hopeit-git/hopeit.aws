@@ -1,3 +1,7 @@
+"""
+aws-example tests
+"""
+
 import uuid
 
 import pytest
@@ -5,14 +9,12 @@ from aws_example.model import Something, SomethingNotFound
 from hopeit.app.config import AppConfig
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
 from hopeit.dataobjects.payload import Payload
-from hopeit.server.version import APPS_API_VERSION
 from hopeit.testing.apps import create_test_context, execute_event
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
-APP_VERSION = APPS_API_VERSION.replace(".", "x")
-
 
 async def sample_file_id(app_config: AppConfig):
+    """Creates sample_file"""
     test_id = str(uuid.uuid4())
     test_id1 = test_id + "a"
     json_str = (
@@ -24,7 +26,6 @@ async def sample_file_id(app_config: AppConfig):
     context = create_test_context(app_config, "s3.query_something")
     settings = context.settings(key="object_storage", datatype=ObjectStorageSettings)
     storage = await ObjectStorage.with_settings(settings).connect()
-    await storage.create_bucket()
 
     ret = await storage.store(
         key=test_id1, value=Payload.from_json(json_str, datatype=Something)
@@ -34,12 +35,13 @@ async def sample_file_id(app_config: AppConfig):
 
 
 @pytest.mark.asyncio
-async def test_query_item(
-    moto_server: ThreadedMotoServer, app_config: AppConfig
-):  # pylint: disable=unused-argument
+async def test_query_item(moto_server: ThreadedMotoServer, app_config: AppConfig):
+    """Test s3.query_something"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
+
     test_id = await sample_file_id(app_config)
 
-    result, pp_result, res = await execute_event(  # pylint: disable=unused-variable
+    result, pp_result, _ = await execute_event(
         app_config=app_config,
         event_name="s3.query_something",
         payload=None,
@@ -54,9 +56,10 @@ async def test_query_item(
 
 @pytest.mark.asyncio
 async def test_query_item_not_found(
-    moto_server: ThreadedMotoServer,  # pylint: disable=unused-argument
+    moto_server: ThreadedMotoServer,
     app_config: AppConfig,
 ):
+    """Test s3.query_something"""
     item_id = str(uuid.uuid4())
     result, pp_result, res = await execute_event(
         app_config=app_config,

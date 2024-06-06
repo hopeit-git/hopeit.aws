@@ -1,19 +1,21 @@
+"""
+aws-example tests
+"""
+
 import io
 
 import pytest
 from aws_example.s3.streamed_download_file import SomeFile
 from hopeit.aws.s3 import ObjectStorage
-from hopeit.server.version import APPS_API_VERSION
 from hopeit.testing.apps import create_test_context, execute_event
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
-APP_VERSION = APPS_API_VERSION.replace(".", "x")
-
 
 @pytest.mark.asyncio
-async def test_streamed_download_file(
-    moto_server: ThreadedMotoServer, app_config
-):  # pylint: disable=unused-argument
+async def test_streamed_download_file(moto_server: ThreadedMotoServer, app_config):
+    """Test s3.streamed_download_file"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
+
     file_name = "randomfile"
 
     file = io.BytesIO()
@@ -30,7 +32,6 @@ async def test_streamed_download_file(
     storage = await ObjectStorage.with_settings(
         context.settings.extras["object_storage"]
     ).connect()
-    await storage.create_bucket()
 
     file_path = await storage.store_file(file_name=file_name, value=file)
 
@@ -60,21 +61,19 @@ async def test_streamed_download_file(
 
 
 @pytest.mark.asyncio
-async def test_streamed_download_none(
-    moto_server: ThreadedMotoServer, app_config
-):  # pylint: disable=unused-argument
+async def test_streamed_download_none(moto_server: ThreadedMotoServer, app_config):
+    """Test s3.streamed_download_file"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
 
     file_name = "randomfile2"
 
-    result, pp_result, response = (  # pylint: disable=unused-variable
-        await execute_event(
-            app_config=app_config,
-            event_name="s3.streamed_download_file",
-            payload=None,
-            postprocess=True,
-            file_name=file_name,
-            partition_key="partition_key",
-        )
+    result, pp_result, _ = await execute_event(
+        app_config=app_config,
+        event_name="s3.streamed_download_file",
+        payload=None,
+        postprocess=True,
+        file_name=file_name,
+        partition_key="partition_key",
     )
 
     assert isinstance(result, SomeFile)

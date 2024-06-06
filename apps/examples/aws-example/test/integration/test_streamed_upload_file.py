@@ -1,19 +1,22 @@
+"""
+aws-example tests
+"""
+
 import os
 
 import pytest
 from hopeit.aws.s3 import ObjectStorage
-from hopeit.server.version import APPS_API_VERSION
 from hopeit.testing.apps import create_test_context, execute_event
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
-
-APP_VERSION = APPS_API_VERSION.replace(".", "x")
 
 
 @pytest.mark.asyncio
 async def test_streamed_upload_file(
     moto_server: ThreadedMotoServer,
     app_config,
-):  # pylint: disable=unused-argument
+):
+    """Test s3.streamed_upload_file"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
 
     file_name = "test_file_name.bytes"
     file_content = b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -54,7 +57,9 @@ async def test_streamed_upload_file(
 async def test_it_save_something_missing_field(
     moto_server: ThreadedMotoServer,
     app_config,
-):  # pylint: disable=unused-argument
+):
+    """Test s3.streamed_upload_file"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
 
     fields = {}
 

@@ -46,7 +46,7 @@ expected_aws_mock_empty = AwsMockEmpty()
 
 
 @pytest.mark.asyncio
-async def test_bucket_creation(moto_server, monkeypatch):  # pylint: disable=W0621,W0613
+async def test_bucket_creation(moto_server, monkeypatch):
     """
     This test verifies the behavior of object storage operations when using
     AWS credentials from environment variables.
@@ -74,7 +74,7 @@ async def test_bucket_creation(moto_server, monkeypatch):  # pylint: disable=W06
 
 @pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
-async def test_objects(prefix, moto_server, monkeypatch):  # pylint: disable=W0621,W0613
+async def test_objects(prefix, moto_server, monkeypatch):
     """
     This test verifies the behavior of object storage operations when using
     AWS credentials from environment variables.
