@@ -1,16 +1,18 @@
+"""
+aws-example tests
+"""
+
 import uuid
 
 import pytest
 from hopeit.app.config import AppConfig
 from hopeit.aws.s3 import ItemLocator, ObjectStorage, ObjectStorageSettings
-from hopeit.server.version import APPS_API_VERSION
 from hopeit.testing.apps import create_test_context, execute_event
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
-APP_VERSION = APPS_API_VERSION.replace(".", "x")
-
 
 async def sample_file_id(app_config: AppConfig):
+    """Creates sample_file"""
     test_id = str(uuid.uuid4())
     test_id1 = test_id + "a"
     test_id2 = test_id + "b"
@@ -28,9 +30,10 @@ async def sample_file_id(app_config: AppConfig):
 
 
 @pytest.mark.asyncio
-async def test_list_files(
-    moto_server: ThreadedMotoServer, app_config: AppConfig
-):  # pylint: disable=unused-argument
+async def test_list_files(moto_server: ThreadedMotoServer, app_config: AppConfig):
+    """Test s3.list_files"""
+    await execute_event(app_config=app_config, event_name="s3.init", payload=None)
+
     test_id, partition_key = await sample_file_id(app_config)
 
     results = await execute_event(

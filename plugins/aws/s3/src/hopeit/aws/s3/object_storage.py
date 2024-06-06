@@ -7,6 +7,7 @@ import fnmatch
 import os
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from typing import (
     IO,
     Any,
@@ -88,18 +89,12 @@ class ObjectStorageSettings:
         to partition saved files to different subfolders based on event_ts(). i.e. "%Y/%m/%d"
         will store each files in a folder `/year/month/day/`
     :field connection_config, `ConnectionConfig`: Connection configuration for S3 client.
-    :field: create_bucket: Flag indicating whether to create the bucket if it does not exist.
     """
 
     bucket: str
     connection_config: ConnectionConfig
     prefix: Optional[str] = None
     partition_dateformat: Optional[str] = None
-    create_bucket: Union[bool, str] = True
-
-    def __post_init__(self):
-        if isinstance(self.create_bucket, str):
-            self.create_bucket = self.create_bucket.lower() in ("true")
 
 
 @dataobject
@@ -119,7 +114,6 @@ class ObjectStorage(Generic[DataObject]):
         bucket: str,
         prefix: Optional[str] = None,
         partition_dateformat: Optional[str] = None,
-        create_bucket: bool = False,
     ):
         """
         Initialize ObjectStorage with the bucket name and optional partition_dateformat
@@ -128,12 +122,10 @@ class ObjectStorage(Generic[DataObject]):
         :param prefix, Optional[str]: Prefix to be used for every element (object or file) stored in the S3 bucket.
         :param partition_dateformat, Optional[str]: Optional format string for partitioning
             dates in the S3 bucket.
-        :param create_bucket, bool: Whether to create the S3 bucket if it doesn't exist
         """
         self.bucket: str = bucket
-        self.prefix: Optional[str] = prefix
+        self.prefix: Optional[str] = (prefix.rstrip("/") + "/") if prefix else None
         self.partition_dateformat: str = (partition_dateformat or "").strip("/")
-        self.create_bucket: bool = create_bucket
         self._settings: ObjectStorageSettings
         self._conn_config: Dict[str, Any]
         self._session: Session = None
@@ -157,7 +149,6 @@ class ObjectStorage(Generic[DataObject]):
             bucket=settings.bucket,
             prefix=settings.prefix,
             partition_dateformat=settings.partition_dateformat,
-            create_bucket=bool(settings.create_bucket),
         )
         obj._settings = settings
         return obj
@@ -182,31 +173,6 @@ class ObjectStorage(Generic[DataObject]):
             connection_config if connection_config else self._settings.connection_config
         )
         self._session = Session()
-        region_name = os.getenv("AWS_DEFAULT_REGION")
-        if region_name and "region_name" not in self._conn_config:
-            self._conn_config["region_name"] = region_name
-
-        if self.create_bucket:
-            kwargs = (
-                {
-                    "CreateBucketConfiguration": {
-                        "LocationConstraint": self._conn_config["region_name"]
-                    }
-                }
-                if self._conn_config.get("region_name", None) is not None
-                else {}
-            )
-            async with self._session.client(S3, **self._conn_config) as object_storage:
-                try:
-                    await object_storage.create_bucket(Bucket=self.bucket, **kwargs)
-                except ClientError as e:
-                    if e.response["Error"]["Code"] in [
-                        "BucketAlreadyOwnedByYou",
-                        "BucketAlreadyExists",
-                    ]:
-                        pass
-                    else:
-                        raise e
         return self
 
     async def get(
@@ -226,8 +192,7 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            key = f"{partition_key}/{key}" if partition_key else key
-            key = f"{self.prefix or ''}{key}"
+            key = self._build_key(partition_key=partition_key, key=key)
             try:
                 file_obj = BytesIO()
                 await object_storage.download_fileobj(
@@ -257,8 +222,7 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            file_name = f"{partition_key}/{file_name}" if partition_key else file_name
-            file_name = f"{self.prefix or ''}{file_name}"
+            file_name = self._build_key(partition_key=partition_key, key=file_name)
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 ret = BytesIO()
@@ -290,7 +254,7 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            file_name = f"{self.prefix or ''}{partition_key + '/' if partition_key else ''}{file_name}"
+            file_name = self._build_key(partition_key=partition_key, key=file_name)
             try:
                 obj = await object_storage.get_object(Bucket=self.bucket, Key=file_name)
                 content_length = obj["ContentLength"]
@@ -310,17 +274,17 @@ class ObjectStorage(Generic[DataObject]):
         :param value: hopeit @dataobject
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            file_path = f"{key}{SUFFIX}"
+            partition_key = None
             if self.partition_dateformat:
                 partition_key = get_partition_key(value, self.partition_dateformat)
-                file_path = f"{partition_key}{file_path}"
-            file_path = f"{'' if not self.prefix else self.prefix}{file_path}"
+
+            key = self._build_key(partition_key=partition_key, key=f"{key}{SUFFIX}")
             await object_storage.upload_fileobj(
                 BytesIO(Payload.to_json(value).encode()),
                 Bucket=self.bucket,
-                Key=file_path,
+                Key=key,
             )
-            return self._prune_prefix(file_path)
+            return self._prune_prefix(key)
 
     async def store_file(
         self, *, file_name: str, value: Union[bytes, IO[bytes], Any]
@@ -334,25 +298,23 @@ class ObjectStorage(Generic[DataObject]):
         :return, str: file location
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
-            file_path = file_name
+            partition_key = None
             if self.partition_dateformat:
                 partition_key = get_file_partition_key(self.partition_dateformat)
-                file_path = f"{partition_key}{file_name}"
-
-            file_path = f"{'' if not self.prefix else self.prefix}{file_path}"
+            key = self._build_key(partition_key=partition_key, key=file_name)
             if isinstance(value, bytes):
                 await object_storage.upload_fileobj(
                     BytesIO(value),
                     Bucket=self.bucket,
-                    Key=file_path,
+                    Key=key,
                 )
             else:
                 await object_storage.upload_fileobj(
                     value,
                     Bucket=self.bucket,
-                    Key=file_path,
+                    Key=key,
                 )
-        return self._prune_prefix(file_path)
+        return self._prune_prefix(key)
 
     async def list_objects(
         self, wildcard: str = "*", recursive: bool = False
@@ -365,8 +327,6 @@ class ObjectStorage(Generic[DataObject]):
         """
         wildcard = wildcard + SUFFIX
         n_part_comps = len(self.partition_dateformat.split("/"))
-        if self.partition_dateformat:
-            recursive = True
         item_list = []
         async for key in self._aioglob(wildcard, recursive):
             item_list.append(key)
@@ -384,11 +344,8 @@ class ObjectStorage(Generic[DataObject]):
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in keys:
-                key = f"{partition_key}/{key}" if partition_key else key
-                await object_storage.delete_object(
-                    Bucket=self.bucket,
-                    Key=f"{'' if not self.prefix else self.prefix}{key + SUFFIX}",
-                )
+                key = self._build_key(partition_key=partition_key, key=key + SUFFIX)
+                await object_storage.delete_object(Bucket=self.bucket, Key=key)
 
     async def delete_files(self, *file_names: str, partition_key: Optional[str] = None):
         """
@@ -399,11 +356,8 @@ class ObjectStorage(Generic[DataObject]):
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
             for key in file_names:
-                key = f"{partition_key}/{key}" if partition_key else key
-                await object_storage.delete_object(
-                    Bucket=self.bucket,
-                    Key=f"{'' if not self.prefix else self.prefix}{key}",
-                )
+                key = self._build_key(partition_key=partition_key, key=key)
+                await object_storage.delete_object(Bucket=self.bucket, Key=key)
 
     async def list_files(
         self, wildcard: str = "*", recursive: bool = False
@@ -416,8 +370,6 @@ class ObjectStorage(Generic[DataObject]):
         """
         n_part_comps = len(self.partition_dateformat.split("/"))
         item_list = []
-        if self.partition_dateformat:
-            recursive = True
         async for key in self._aioglob(wildcard, recursive):
             item_list.append(key)
         return [
@@ -436,6 +388,44 @@ class ObjectStorage(Generic[DataObject]):
             partition_key = path.rsplit("/", 1)[0]
         return partition_key
 
+    async def create_bucket(self, exist_ok: bool = False):
+        """
+        Creates a bucket in the ObjectStorage if it doesn't already exist,
+        based on the `check_if_exists` parameter.
+
+        Note: The `create_bucket` method is provided for convenience and should be avoided in production environments.
+
+        :param bucket, str: The name of the bucket to create.
+        :param exist_ok, bool: If False, raises an error if the bucket already exists (default is False).
+        """
+
+        region_name = os.getenv("AWS_DEFAULT_REGION")
+        if region_name and "region_name" not in self._conn_config:
+            self._conn_config["region_name"] = region_name
+
+        kwargs = (
+            {
+                "CreateBucketConfiguration": {
+                    "LocationConstraint": self._conn_config["region_name"]
+                }
+            }
+            if self._conn_config.get("region_name", None) is not None
+            else {}
+        )
+
+        async with self._session.client("s3", **self._conn_config) as object_storage:
+            if exist_ok:
+                try:
+                    await object_storage.head_bucket(Bucket=self.bucket)
+                    return
+                except ClientError as e:
+                    if e.response["Error"]["Code"] != "404":
+                        raise e
+            try:
+                await object_storage.create_bucket(Bucket=self.bucket, **kwargs)
+            except ClientError as e:
+                raise e
+
     async def _aioglob(
         self,
         wildcard: Optional[str] = None,
@@ -450,13 +440,12 @@ class ObjectStorage(Generic[DataObject]):
         :yields: str: The keys of the files that match the criteria.
         """
         async with self._session.client(S3, **self._conn_config) as object_storage:
-
             prefix = self.prefix or ""
 
             if wildcard:
-                dir_path = os.path.dirname(wildcard)
-                if dir_path:
-                    prefix = os.path.join(prefix, dir_path) + "/"
+                dir_path = Path(wildcard).parent
+                if dir_path != Path("."):
+                    prefix += f"{dir_path}/"
 
             paginator = object_storage.get_paginator("list_objects_v2")
             async for result in paginator.paginate(
@@ -467,25 +456,37 @@ class ObjectStorage(Generic[DataObject]):
                 for content in result.get("Contents", []):
                     key = content["Key"]
                     if wildcard and not fnmatch.fnmatch(
-                        key, (self.prefix or "") + wildcard
+                        key, self._build_key(partition_key=None, key=wildcard)
                     ):
                         continue
                     yield self._prune_prefix(key)
+
+    def _build_key(self, partition_key: Optional[str], key: str) -> str:
+        """
+        Build the key based on the prefix, partition key, and base key.
+
+        :param partition_key: Optional[str]: The partition key to add to the key.
+        :param key: str: The base file key.
+        :return: The constructed file key.
+        """
+        return f"{self.prefix or ''}{partition_key.rstrip('/') + '/' if partition_key else ''}{key}"
 
     def _get_item_locator(
         self, item_path: str, n_part_comps: int, suffix: Optional[str] = None
     ) -> ItemLocator:
         """This method generates an `ItemLocator` object from a given `item_path`"""
         comps = item_path.split("/")
-        partition_key = (
-            "/".join(comps[(-n_part_comps - 1) : -1])
-            if self.partition_dateformat or len(comps) > 1
-            else None
-        )
+
+        if not self.partition_dateformat:
+            return ItemLocator(
+                item_id=item_path[: -len(suffix)] if suffix else item_path
+            )
+        partition_key = "/".join(comps[(-n_part_comps - 1) : -1])
+
         item_id = comps[-1][: -len(suffix)] if suffix else comps[-1]
         return ItemLocator(item_id=item_id, partition_key=partition_key)
 
     def _prune_prefix(self, file_path: str) -> str:
-        if self.prefix and file_path.startswith(self.prefix):
-            return file_path.replace(self.prefix, "", 1)
+        if self.prefix:
+            return file_path[len(self.prefix) :]
         return file_path

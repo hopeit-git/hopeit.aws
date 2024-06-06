@@ -1,3 +1,7 @@
+"""
+aws-example tests
+"""
+
 import time
 
 import pytest
@@ -22,7 +26,7 @@ def patch_env(monkeypatch):
 
 
 @pytest.fixture
-def app_config(patch_env):  # pylint: disable=redefined-outer-name
+def app_config(patch_env):
     return config("apps/examples/aws-example/config/app-config.json")
 
 
