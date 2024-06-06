@@ -13,7 +13,7 @@ export MYPYPATH=plugins/aws/s3/src:apps/examples/aws-example/src/ && python3 -m 
 code+=$?
 python3 -m flake8 apps/examples/aws-example/src/ apps/examples/aws-example/test/integration
 code+=$?
-python3 -m pylint apps/examples/aws-example/src/ apps/examples/aws-example/test/integration
+PYTHONPATH=apps/examples/aws-example/src/:plugins/aws/s3/src/ python3 -m pylint apps/examples/aws-example/src/ apps/examples/aws-example/test/integration
 code+=$?
 
 if [ $code -gt 0 ]
