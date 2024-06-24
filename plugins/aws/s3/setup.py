@@ -1,6 +1,6 @@
 import setuptools
 
-version = "0.1.3"
+version = "0.2.0b1"
 
 setuptools.setup(
     name="hopeit.aws.s3",

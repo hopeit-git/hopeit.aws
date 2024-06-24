@@ -5,7 +5,6 @@ Uploads file using multipart upload support. Returns metadata Something object.
 ```
 """
 
-from dataclasses import dataclass, field
 from typing import List, Optional
 
 import aiofiles
@@ -13,7 +12,7 @@ from hopeit.app.api import event_api
 from hopeit.app.context import EventContext
 from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
-from hopeit.dataobjects import dataobject
+from hopeit.dataobjects import dataclass, dataobject, field
 
 object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()

@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+Version 0.2.0b1
+_____________
+- hopeit.aws.s3 
+
+   - Updated to be compatible with `hopeit.engine` version 0.25.0.
+   
+   BREAKING CHANGES
+   ================
+
+   - This version is not backward compatible with previous version of the `hopeit.engine`.
+
 Version 0.1.3
 _____________
 - hopeit.aws.s3 
@@ -8,7 +19,7 @@ _____________
    - Extracted bucket creation logic from settings into a separate method `bucket_creation`.
    - Set default listing behavior to non-recursive, treating subdirectories as part of the key; partitions only show the partition part of the key.
    - Use `_build_key` method internally to handle prefix and partitioning part of the key.
-   - In the `aws_example`` app, moved `create_bucket` from endpoint initialization to an initialization SETUP event.
+   - In the `aws_example` app, moved `create_bucket` from endpoint initialization to an initialization SETUP event.
 
 Version 0.1.2
 _____________
