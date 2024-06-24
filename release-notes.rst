@@ -1,7 +1,7 @@
 Release Notes
 =============
 
-Version 0.2.0b1
+Version 0.2.0
 _____________
 - hopeit.aws.s3 
 
@@ -10,7 +10,7 @@ _____________
    BREAKING CHANGES
    ================
 
-   - This version is not backward compatible with previous version of the `hopeit.engine`.
+   - This version is not backward compatible with previous version of `hopeit.engine`.
 
 Version 0.1.3
 _____________
