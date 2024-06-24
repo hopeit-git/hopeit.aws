@@ -5,14 +5,13 @@ Uploads file using multipart upload support. Returns metadata Something object.
 ```
 """
 
-from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext, PreprocessHook
 from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
-from hopeit.dataobjects import BinaryAttachment, dataobject
+from hopeit.dataobjects import BinaryAttachment, dataclass, dataobject, field
 
 object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()

@@ -3,7 +3,6 @@ hopeit.aws.s3 tests
 """
 
 import io
-from dataclasses import dataclass
 from time import sleep
 from typing import Optional
 
@@ -15,7 +14,7 @@ from hopeit.aws.s3 import (
     ObjectStorage,
     ObjectStorageSettings,
 )
-from hopeit.dataobjects import dataobject
+from hopeit.dataobjects import dataclass, dataobject
 from moto.server import ThreadedMotoServer
 
 

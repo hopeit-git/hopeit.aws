@@ -5,14 +5,13 @@ Download streamed S3 content as file.
 The PostprocessHook return the requested resource as stream using `prepare_stream_response`.
 """
 
-from dataclasses import dataclass
 from typing import Optional
 
 from hopeit.app.api import event_api
 from hopeit.app.context import EventContext, PostprocessHook
 from hopeit.app.logger import app_extra_logger
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings
-from hopeit.dataobjects import BinaryDownload
+from hopeit.dataobjects import BinaryDownload, dataclass
 
 object_storage: Optional[ObjectStorage] = None
 logger, extra = app_extra_logger()

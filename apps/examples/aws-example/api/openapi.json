@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "version": "0.1",
+    "version": "0.2",
     "title": "AWS Example",
     "description": "AWS Example"
   },
   "paths": {
-    "/api/aws-example/0x1/s3/save-something": {
+    "/api/aws-example/0x2/s3/save-something": {
       "post": {
         "summary": "AWS Example: Save Something",
         "description": "Creates and saves Something",
@@ -83,11 +83,11 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     },
-    "/api/aws-example/0x1/s3/query-something": {
+    "/api/aws-example/0x2/s3/query-something": {
       "post": {
         "summary": "AWS Example: Query Something",
         "description": "Loads Something from s3",
@@ -153,11 +153,11 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     },
-    "/api/aws-example/0x1/s3/list-objects": {
+    "/api/aws-example/0x2/s3/list-objects": {
       "get": {
         "summary": "AWS Example: List Objects",
         "description": "Lists all available Something objects",
@@ -207,11 +207,11 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     },
-    "/api/aws-example/0x1/s3/list-files": {
+    "/api/aws-example/0x2/s3/list-files": {
       "get": {
         "summary": "AWS Example: List Files",
         "description": "Lists all available Something objects",
@@ -261,11 +261,11 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     },
-    "/api/aws-example/0x1/s3/upload-download-file": {
+    "/api/aws-example/0x2/s3/upload-download-file": {
       "get": {
         "summary": "AWS Example: Upload Download File",
         "description": "This example just upload and download files to s2 storage as example of usage",
@@ -325,11 +325,11 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     },
-    "/api/aws-example/0x1/s3/streamed-upload-file": {
+    "/api/aws-example/0x2/s3/streamed-upload-file": {
       "post": {
         "summary": "AWS Example: Streamed Upload File",
         "description": "Upload files using Multipart form request",
@@ -414,11 +414,11 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     },
-    "/api/aws-example/0x1/s3/streamed-download-file": {
+    "/api/aws-example/0x2/s3/streamed-download-file": {
       "get": {
         "summary": "AWS Example: Streamed Download File",
         "description": "Download streamed S3 content as file.\nThe PostprocessHook return the requested resource as stream using `prepare_stream_response`.",
@@ -494,7 +494,7 @@
           }
         },
         "tags": [
-          "aws_example.0x1"
+          "aws_example.0x2"
         ]
       }
     }
@@ -502,149 +502,171 @@
   "components": {
     "schemas": {
       "SomethingParams": {
-        "type": "object",
+        "description": "Params to create and save Something",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "user": {
+            "title": "User",
+            "type": "string"
+          }
+        },
         "required": [
           "id",
           "user"
         ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "user": {
-            "type": "string"
-          }
-        },
-        "x-module-name": "aws_example.model",
-        "description": "Params to create and save Something"
-      },
-      "User": {
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "x-module-name": "aws_example.model",
-        "description": "User information"
+        "title": "SomethingParams",
+        "type": "object"
       },
       "Status": {
-        "type": "object",
+        "description": "Status change",
+        "properties": {
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/StatusType"
+          }
+        },
         "required": [
           "ts",
           "type"
         ],
-        "properties": {
-          "ts": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "LOADED",
-              "SUBMITTED",
-              "PROCESSED"
-            ],
-            "x-enum-name": "StatusType",
-            "x-module-name": "aws_example.model"
-          }
-        },
-        "x-module-name": "aws_example.model",
-        "description": "Status change"
+        "title": "Status",
+        "type": "object"
       },
-      "Something": {
-        "type": "object",
-        "required": [
-          "id",
-          "user"
+      "StatusType": {
+        "enum": [
+          "NEW",
+          "LOADED",
+          "SUBMITTED",
+          "PROCESSED"
         ],
+        "title": "StatusType",
+        "type": "string"
+      },
+      "User": {
+        "description": "User information",
         "properties": {
           "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "User",
+        "type": "object"
+      },
+      "Something": {
+        "description": "Example Something event",
+        "properties": {
+          "id": {
+            "title": "Id",
             "type": "string"
           },
           "user": {
             "$ref": "#/components/schemas/User"
           },
           "status": {
-            "$ref": "#/components/schemas/Status"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Status"
+              }
+            ],
+            "default": null,
+            "nullable": true
           },
           "history": {
-            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Status"
             },
-            "default": []
+            "title": "History",
+            "type": "array"
           }
         },
-        "x-module-name": "aws_example.model",
-        "description": "Example Something event"
+        "required": [
+          "id",
+          "user"
+        ],
+        "title": "Something",
+        "type": "object"
       },
       "SomethingNotFound": {
-        "type": "object",
+        "description": "Item not found in datastore",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
         "required": [
           "path",
           "id"
         ],
-        "properties": {
-          "path": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          }
-        },
-        "x-module-name": "aws_example.model",
-        "description": "Item not found in datastore"
+        "title": "SomethingNotFound",
+        "type": "object"
       },
       "ItemLocator": {
-        "type": "object",
-        "required": [
-          "item_id"
-        ],
         "properties": {
           "item_id": {
+            "title": "Item Id",
             "type": "string"
           },
           "partition_key": {
+            "default": null,
+            "nullable": true,
+            "title": "Partition Key",
             "type": "string"
           }
         },
-        "x-module-name": "hopeit.aws.s3.object_storage",
-        "description": "ItemLocator(item_id: str, partition_key: Union[str, NoneType] = None)"
+        "required": [
+          "item_id"
+        ],
+        "title": "ItemLocator",
+        "type": "object"
       },
       "UploadedFile": {
-        "type": "object",
+        "properties": {
+          "file_id": {
+            "title": "File Id",
+            "type": "string"
+          },
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "saved_path": {
+            "title": "Saved Path",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
         "required": [
           "file_id",
           "file_name",
           "saved_path",
           "size"
         ],
-        "properties": {
-          "file_id": {
-            "type": "string"
-          },
-          "file_name": {
-            "type": "string"
-          },
-          "saved_path": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer"
-          }
-        },
-        "x-module-name": "aws_example.s3.streamed_upload_file",
-        "description": "UploadedFile(file_id: str, file_name: str, saved_path: str, size: int)"
+        "title": "UploadedFile",
+        "type": "object"
       }
     },
     "securitySchemes": {

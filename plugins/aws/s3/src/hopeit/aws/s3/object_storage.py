@@ -5,7 +5,6 @@ Storage/persistence asynchronous stores and gets files from object storage.
 
 import fnmatch
 import os
-from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -24,7 +23,7 @@ from typing import (
 
 from aioboto3 import Session  # type: ignore
 from botocore.exceptions import ClientError
-from hopeit.dataobjects import DataObject, dataobject
+from hopeit.dataobjects import DataObject, dataclass, dataobject
 from hopeit.dataobjects.payload import Payload
 
 from .partition import get_file_partition_key, get_partition_key
@@ -400,7 +399,7 @@ class ObjectStorage(Generic[DataObject]):
         """
 
         region_name = os.getenv("AWS_DEFAULT_REGION")
-        if region_name and "region_name" not in self._conn_config:
+        if region_name and self._conn_config.get("region_name") is None:
             self._conn_config["region_name"] = region_name
 
         kwargs = (
@@ -409,7 +408,7 @@ class ObjectStorage(Generic[DataObject]):
                     "LocationConstraint": self._conn_config["region_name"]
                 }
             }
-            if self._conn_config.get("region_name", None) is not None
+            if self._conn_config.get("region_name") is not None
             else {}
         )
 

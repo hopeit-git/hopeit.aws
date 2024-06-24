@@ -19,8 +19,7 @@ pip install hopeit.aws.s3
 ### Usage
 
 ```python
-from dataclasses import dataclass
-from hopeit.dataobjects import dataobject
+from hopeit.dataobjects import dataobject, dataclass
 from hopeit.aws.s3 import ObjectStorage, ObjectStorageSettings, ConnectionConfig
 
 # Create a connection configuration

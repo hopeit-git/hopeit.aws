@@ -2,12 +2,11 @@
 Data model for aws-example test application
 """
 
-from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from hopeit.dataobjects import dataobject
+from hopeit.dataobjects import dataclass, dataobject, field
 
 
 class StatusType(str, Enum):
