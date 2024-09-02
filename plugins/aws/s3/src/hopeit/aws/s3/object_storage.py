@@ -480,9 +480,13 @@ class ObjectStorage(Generic[DataObject]):
             return ItemLocator(
                 item_id=item_path[: -len(suffix)] if suffix else item_path
             )
-        partition_key = "/".join(comps[(-n_part_comps - 1) : -1])
+        partition_key = "/".join(comps[0:n_part_comps])
 
-        item_id = comps[-1][: -len(suffix)] if suffix else comps[-1]
+        item_id = (
+            "/".join(comps[n_part_comps:])[: -len(suffix)]
+            if suffix
+            else "/".join(comps[n_part_comps:])
+        )
         return ItemLocator(item_id=item_id, partition_key=partition_key)
 
     def _prune_prefix(self, file_path: str) -> str:
