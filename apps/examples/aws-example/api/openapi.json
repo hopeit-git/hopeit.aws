@@ -579,11 +579,7 @@
             "$ref": "#/components/schemas/User"
           },
           "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Status"
-              }
-            ],
+            "$ref": "#/components/schemas/Status",
             "default": null,
             "nullable": true
           },

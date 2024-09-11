@@ -361,6 +361,76 @@ async def test_list(prefix, moto_server):
 
 @pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
 @pytest.mark.asyncio
+async def test_list_with_partition(prefix, moto_server):
+    """Get file by chunks"""
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix=prefix,
+        partition_dateformat="%Y/%m/%d/%H/",
+        connection_config=ConnectionConfig(
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopeit#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
+            use_ssl="False",
+            verify="False",
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket(exist_ok=True)
+
+    mock_data = AwsMockData(test="test_aws")
+    location = await object_storage.store(key="test01", value=mock_data)
+    partition_key = location[: location.rfind("/")]
+    assert location == f"{partition_key}/test01.json"
+
+    location = await object_storage.store(key="test02", value=mock_data)
+    assert location == f"{partition_key}/test02.json"
+
+    location = await object_storage.store(key="sub_dir/test03", value=mock_data)
+    assert location == f"{partition_key}/sub_dir/test03.json"
+
+    location = await object_storage.store(key="sub_dir/test04", value=mock_data)
+    assert location == f"{partition_key}/sub_dir/test04.json"
+
+    nofilter_no_recursive = await object_storage.list_objects()
+    nofilter_recursive = await object_storage.list_objects(recursive=True)
+    filter_no_recursive = await object_storage.list_objects(
+        wildcard=f"{partition_key}/*"
+    )
+    filter_recursive = await object_storage.list_objects(
+        wildcard=f"{partition_key}/*", recursive=True
+    )
+
+    assert nofilter_no_recursive == []
+
+    assert nofilter_recursive == [
+        ItemLocator(item_id="sub_dir/test03", partition_key=partition_key),
+        ItemLocator(item_id="sub_dir/test04", partition_key=partition_key),
+        ItemLocator(item_id="test01", partition_key=partition_key),
+        ItemLocator(item_id="test02", partition_key=partition_key),
+    ]
+
+    assert filter_no_recursive == [
+        ItemLocator(item_id="test01", partition_key=partition_key),
+        ItemLocator(item_id="test02", partition_key=partition_key),
+    ]
+
+    assert filter_recursive == [
+        ItemLocator(item_id="sub_dir/test03", partition_key=partition_key),
+        ItemLocator(item_id="sub_dir/test04", partition_key=partition_key),
+        ItemLocator(item_id="test01", partition_key=partition_key),
+        ItemLocator(item_id="test02", partition_key=partition_key),
+    ]
+
+    await object_storage.delete("test01", partition_key=partition_key)
+    await object_storage.delete("test02", partition_key=partition_key)
+    await object_storage.delete("sub_dir/test03", partition_key=partition_key)
+    await object_storage.delete("sub_dir/test04", partition_key=partition_key)
+
+
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
+@pytest.mark.asyncio
 async def test_list_files(prefix, moto_server):
     """Get file by chunks"""
     settings = ObjectStorageSettings(
@@ -456,3 +526,107 @@ async def test_list_files(prefix, moto_server):
     await object_storage.delete_files("sub_dir/test03.bin")
     await object_storage.delete_files("sub_dir/test04.bin")
     await object_storage.delete_files("sub_dir/test01.tmp")
+
+
+@pytest.mark.parametrize("prefix", [None, "some_prefix/", "no_slash", "/"])
+@pytest.mark.asyncio
+async def test_list_files_with_partition(prefix, moto_server):
+    """Get file by chunks"""
+    settings = ObjectStorageSettings(
+        bucket="test",
+        prefix=prefix,
+        partition_dateformat="%Y/%m/%d/%H/",
+        connection_config=ConnectionConfig(
+            aws_access_key_id="hopeit",
+            aws_secret_access_key="Hopeit#Engine#2020",
+            endpoint_url="http://localhost:9002",
+            region_name="eu-central-1",
+            use_ssl="False",
+            verify="False",
+        ),
+    )
+    object_storage = await ObjectStorage.with_settings(settings).connect()
+    await object_storage.create_bucket(exist_ok=True)
+
+    binary_file = b"Binary file"
+
+    location = await object_storage.store_file(
+        file_name="test01.bin", value=binary_file
+    )
+    partition_key = location[: location.rfind("/")]
+
+    assert location == f"{partition_key}/test01.bin"
+
+    location = await object_storage.store_file(
+        file_name="test02.bin", value=binary_file
+    )
+    assert location == f"{partition_key}/test02.bin"
+
+    location = await object_storage.store_file(
+        file_name="test01.tmp", value=binary_file
+    )
+    assert location == f"{partition_key}/test01.tmp"
+
+    location = await object_storage.store_file(
+        file_name="sub_dir/test03.bin", value=binary_file
+    )
+    assert location == f"{partition_key}/sub_dir/test03.bin"
+
+    location = await object_storage.store_file(
+        file_name="sub_dir/test04.bin", value=binary_file
+    )
+    assert location == f"{partition_key}/sub_dir/test04.bin"
+
+    location = await object_storage.store_file(
+        file_name="sub_dir/test01.tmp", value=binary_file
+    )
+    assert location == f"{partition_key}/sub_dir/test01.tmp"
+
+    nofilter_no_recursive = await object_storage.list_files()
+    nofilter_recursive = await object_storage.list_files(recursive=True)
+    filter_no_recursive = await object_storage.list_files(
+        wildcard=f"{partition_key}/*.bin"
+    )
+    filter_recursive = await object_storage.list_files(wildcard="*.bin", recursive=True)
+    filter_recursive_subdir = await object_storage.list_files(
+        wildcard=f"{partition_key}/sub_dir/*.bin", recursive=True
+    )
+
+    assert nofilter_no_recursive == [
+        # ItemLocator(item_id="test01.bin"),
+        # ItemLocator(item_id="test01.tmp"),
+        # ItemLocator(item_id="test02.bin"),
+    ]
+
+    assert nofilter_recursive == [
+        ItemLocator(item_id="sub_dir/test01.tmp", partition_key=partition_key),
+        ItemLocator(item_id="sub_dir/test03.bin", partition_key=partition_key),
+        ItemLocator(item_id="sub_dir/test04.bin", partition_key=partition_key),
+        ItemLocator(item_id="test01.bin", partition_key=partition_key),
+        ItemLocator(item_id="test01.tmp", partition_key=partition_key),
+        ItemLocator(item_id="test02.bin", partition_key=partition_key),
+    ]
+
+    assert filter_no_recursive == [
+        ItemLocator(item_id="test01.bin", partition_key=partition_key),
+        ItemLocator(item_id="test02.bin", partition_key=partition_key),
+    ]
+
+    assert filter_recursive == [
+        ItemLocator(item_id="sub_dir/test03.bin", partition_key=partition_key),
+        ItemLocator(item_id="sub_dir/test04.bin", partition_key=partition_key),
+        ItemLocator(item_id="test01.bin", partition_key=partition_key),
+        ItemLocator(item_id="test02.bin", partition_key=partition_key),
+    ]
+
+    assert filter_recursive_subdir == [
+        ItemLocator(item_id="sub_dir/test03.bin", partition_key=partition_key),
+        ItemLocator(item_id="sub_dir/test04.bin", partition_key=partition_key),
+    ]
+
+    await object_storage.delete_files("test01.bin", partition_key=partition_key)
+    await object_storage.delete_files("test02.bin", partition_key=partition_key)
+    await object_storage.delete_files("test01.tmp", partition_key=partition_key)
+    await object_storage.delete_files("sub_dir/test03.bin", partition_key=partition_key)
+    await object_storage.delete_files("sub_dir/test04.bin", partition_key=partition_key)
+    await object_storage.delete_files("sub_dir/test01.tmp", partition_key=partition_key)

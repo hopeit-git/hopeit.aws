@@ -3,7 +3,7 @@ export OBJECT_STORAGE_ACCESS_KEY_ID="hopeit"
 export OBJECT_STORAGE_SECRET_ACCESS_KEY="Hopei#Engine#2020"
 export OBJECT_STORAGE_ENDPOINT_URL="http://localhost:9000"
 export OBJECT_STORAGE_SSL="false"
-export HOPEIT_AWS_API_VERSION=$(grep "version = \"" plugins/aws/s3/setup.py | awk -F '"' '{print $2}' | awk -F '.' '{print $1"."$2}')
+export HOPEIT_AWS_API_VERSION=$(python -c 'import hopeit.aws.s3; print(".".join(hopeit.aws.s3.__version__.split(".")[:2]))')
 
 export PYTHONPATH=./apps/examples/aws-example/src && \
 hopeit_openapi create \

@@ -5,12 +5,15 @@ Version 0.2.0
 _____________
 - hopeit.aws.s3 
 
-   - Updated to be compatible with `hopeit.engine` version 0.25.0.
+   - Updated to ensure compatibility with `hopeit.engine` version 0.25.0.
    
    BREAKING CHANGES
    ================
 
-   - This version is not backwards compatible with previous version of `hopeit.engine`.
+   - This version introduces breaking changes and is not backwards compatible with any previous versions of `hopeit.engine`.
+   Please upgrade `hopeit.engine` to version 0.25.0 or later to use this release.
+
+   - The `list_files` and `list_objects` methods now require the `recursive` parameter to be passed as a named argument.
 
 Version 0.1.3
 _____________
