@@ -52,7 +52,7 @@ async def load_all(
 
     logger.info(context, "load_all", extra=extra(path=object_storage.bucket))
     items: List[Something] = []
-    for item_loc in await object_storage.list_objects(wildcard, True):
+    for item_loc in await object_storage.list_objects(wildcard, recursive=True):
         something = await object_storage.get(
             key=item_loc.item_id,
             datatype=Something,

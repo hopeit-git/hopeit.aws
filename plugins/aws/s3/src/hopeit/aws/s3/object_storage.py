@@ -316,7 +316,7 @@ class ObjectStorage(Generic[DataObject]):
         return self._prune_prefix(key)
 
     async def list_objects(
-        self, wildcard: str = "*", recursive: bool = False
+        self, wildcard: str = "*", *, recursive: bool = False
     ) -> List[ItemLocator]:
         """
         Retrieves list of objects keys from the object storage
@@ -359,7 +359,7 @@ class ObjectStorage(Generic[DataObject]):
                 await object_storage.delete_object(Bucket=self.bucket, Key=key)
 
     async def list_files(
-        self, wildcard: str = "*", recursive: bool = False
+        self, wildcard: str = "*", *, recursive: bool = False
     ) -> List[ItemLocator]:
         """
         Retrieves list of files_names from the object storage
