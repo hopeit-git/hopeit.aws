@@ -66,8 +66,11 @@ test: test-plugins test-apps
 update-examples-api: install-examples
 	bash apps/examples/aws-example/api/create_openapi_file.sh
 
-dist-plugin:
+dist-plugin: clean-dist-plugin
 	uv --project=$(PLUGINFOLDER) build
+
+clean-dist-plugin:
+	rm -rf $(PLUGINFOLDER)/dist
 
 publish-plugin-pypi:
 	uv publish -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)/dist/*
