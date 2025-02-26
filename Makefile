@@ -17,7 +17,6 @@ dev: env
 	uv pip install -r pyproject.toml	
 	uv pip install -U --no-deps -e ./plugins/aws/s3	
 
-
 ci-deps:
 	uv venv --seed --python $(PYTHONVERSION)
 	uv sync --dev
@@ -39,7 +38,6 @@ lint-plugin:
 
 lint-plugins:		
 	make PLUGINFOLDER=plugins/aws/s3 lint-plugin
-
 
 lint-app:
 	uv run ruff format $(APPFOLDER)/src/ $(APPFOLDER)/test/ --check
@@ -70,15 +68,10 @@ update-examples-api: install-examples
 	bash apps/examples/aws-example/api/create_openapi_file.sh
 
 dist-plugin:
-	cd plugins/aws/s3/ && \
-	pip install build && \
-	pwd && \
-	python -m build
+	uv --project=$(PLUGINFOLDER) build
 
-pypi-plugin:
-	pip install twine && \
-	python -m twine upload -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)/dist/*
+publish-plugin-pypi:
+	uv publish -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)/dist/*
 
-pypi-test-plugin:
-	pip install twine && \
-	python -m twine upload -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --repository testpypi $(PLUGINFOLDER)/dist/*
+publish-plugin-pypi-test:
+	uv publish -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --publish-url=https://test.pypi.org/legacy/ $(PLUGINFOLDER)/dist/*
