@@ -194,9 +194,7 @@ class ObjectStorage(Generic[DataObject]):
             key = self._build_key(partition_key=partition_key, key=key)
             try:
                 file_obj = BytesIO()
-                await object_storage.download_fileobj(
-                    self.bucket, key + SUFFIX, file_obj
-                )
+                await object_storage.download_fileobj(self.bucket, key + SUFFIX, file_obj)
                 obj = file_obj.getvalue()
                 if len(obj):
                     return Payload.from_json(obj, datatype)
@@ -285,9 +283,7 @@ class ObjectStorage(Generic[DataObject]):
             )
             return self._prune_prefix(key)
 
-    async def store_file(
-        self, *, file_name: str, value: Union[bytes, IO[bytes], Any]
-    ) -> str:
+    async def store_file(self, *, file_name: str, value: Union[bytes, IO[bytes], Any]) -> str:
         """
         Stores bytes or a file-like object.
 
@@ -329,10 +325,7 @@ class ObjectStorage(Generic[DataObject]):
         item_list = []
         async for key in self._aioglob(wildcard, recursive):
             item_list.append(key)
-        return [
-            self._get_item_locator(item_path, n_part_comps, SUFFIX)
-            for item_path in item_list
-        ]
+        return [self._get_item_locator(item_path, n_part_comps, SUFFIX) for item_path in item_list]
 
     async def delete(self, *keys: str, partition_key: Optional[str] = None):
         """
@@ -371,9 +364,7 @@ class ObjectStorage(Generic[DataObject]):
         item_list = []
         async for key in self._aioglob(wildcard, recursive):
             item_list.append(key)
-        return [
-            self._get_item_locator(item_path, n_part_comps) for item_path in item_list
-        ]
+        return [self._get_item_locator(item_path, n_part_comps) for item_path in item_list]
 
     def partition_key(self, path: str) -> str:
         """
@@ -403,11 +394,7 @@ class ObjectStorage(Generic[DataObject]):
             self._conn_config["region_name"] = region_name
 
         kwargs = (
-            {
-                "CreateBucketConfiguration": {
-                    "LocationConstraint": self._conn_config["region_name"]
-                }
-            }
+            {"CreateBucketConfiguration": {"LocationConstraint": self._conn_config["region_name"]}}
             if self._conn_config.get("region_name") is not None
             else {}
         )
@@ -477,9 +464,7 @@ class ObjectStorage(Generic[DataObject]):
         comps = item_path.split("/")
 
         if not self.partition_dateformat:
-            return ItemLocator(
-                item_id=item_path[: -len(suffix)] if suffix else item_path
-            )
+            return ItemLocator(item_id=item_path[: -len(suffix)] if suffix else item_path)
         partition_key = "/".join(comps[0:n_part_comps])
 
         item_id = (

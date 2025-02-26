@@ -40,9 +40,7 @@ async def __init_event__(context):
         ).connect()
 
 
-async def load_all(
-    payload: None, context: EventContext, wildcard: str = "*"
-) -> List[ItemLocator]:
+async def load_all(payload: None, context: EventContext, wildcard: str = "*") -> List[ItemLocator]:
     """
     Load objects that match the given wildcard
     """

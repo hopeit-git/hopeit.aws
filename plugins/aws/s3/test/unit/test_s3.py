@@ -93,9 +93,7 @@ async def test_objects(prefix, moto_server, monkeypatch):
     object_none = await object_storage.get(key="test", datatype=AwsMockData)
     assert object_none is None
     empty_file = io.BytesIO(b"")
-    location = await object_storage.store_file(
-        file_name="test_none.json", value=empty_file
-    )
+    location = await object_storage.store_file(file_name="test_none.json", value=empty_file)
     assert location == "test_none.json"
     object_none = await object_storage.get(key="test_none", datatype=AwsMockEmpty)
     assert object_none is None
@@ -187,9 +185,7 @@ async def test_files(prefix, moto_server):
 
     object_none = await object_storage.get_file(file_name="test3.bin")
     assert object_none is None
-    location = await object_storage.store_file(
-        file_name="test3.bin", value=io.BytesIO(binary_file)
-    )
+    location = await object_storage.store_file(file_name="test3.bin", value=io.BytesIO(binary_file))
     assert location == "test3.bin"
     object_get = await object_storage.get_file(file_name="test3.bin")
     assert object_get == binary_file
@@ -228,9 +224,7 @@ async def test_files_with_partition_keys(prefix, moto_server):
     partition_key = object_storage.partition_key(location)
     assert location == f"{partition_key}/test4.bin"
 
-    file = await object_storage.get_file(
-        file_name="test4.bin", partition_key=partition_key
-    )
+    file = await object_storage.get_file(file_name="test4.bin", partition_key=partition_key)
     assert file == binary_file
 
     items = await object_storage.list_files("*test4.bin*")
@@ -239,9 +233,7 @@ async def test_files_with_partition_keys(prefix, moto_server):
     assert items == [ItemLocator(item_id="test4.bin", partition_key=partition_key)]
 
     await object_storage.delete_files("test4.bin", partition_key=partition_key)
-    no_file = await object_storage.get_file(
-        file_name="test4.bin", partition_key=partition_key
-    )
+    no_file = await object_storage.get_file(file_name="test4.bin", partition_key=partition_key)
     assert no_file is None
     await object_storage.delete_files("test4.bin")
 
@@ -271,17 +263,13 @@ async def test_get_file_chunked(prefix, moto_server):
     assert location == "test6.bin"
 
     data = io.BytesIO()
-    async for chunk, file_size in object_storage.get_file_chunked(
-        file_name="test6.bin"
-    ):
+    async for chunk, file_size in object_storage.get_file_chunked(file_name="test6.bin"):
         assert file_size == 11
         data.write(chunk)
 
     assert data.getvalue() == b"Binary file"
 
-    async for chunk, file_size in object_storage.get_file_chunked(
-        file_name="test7.bin"
-    ):
+    async for chunk, file_size in object_storage.get_file_chunked(file_name="test7.bin"):
         assert file_size == 0
         assert chunk is None
 
@@ -395,9 +383,7 @@ async def test_list_with_partition(prefix, moto_server):
 
     nofilter_no_recursive = await object_storage.list_objects()
     nofilter_recursive = await object_storage.list_objects(recursive=True)
-    filter_no_recursive = await object_storage.list_objects(
-        wildcard=f"{partition_key}/*"
-    )
+    filter_no_recursive = await object_storage.list_objects(wildcard=f"{partition_key}/*")
     filter_recursive = await object_storage.list_objects(
         wildcard=f"{partition_key}/*", recursive=True
     )
@@ -450,34 +436,22 @@ async def test_list_files(prefix, moto_server):
 
     binary_file = b"Binary file"
 
-    location = await object_storage.store_file(
-        file_name="test01.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="test01.bin", value=binary_file)
     assert location == "test01.bin"
 
-    location = await object_storage.store_file(
-        file_name="test02.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="test02.bin", value=binary_file)
     assert location == "test02.bin"
 
-    location = await object_storage.store_file(
-        file_name="test01.tmp", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="test01.tmp", value=binary_file)
     assert location == "test01.tmp"
 
-    location = await object_storage.store_file(
-        file_name="sub_dir/test03.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="sub_dir/test03.bin", value=binary_file)
     assert location == "sub_dir/test03.bin"
 
-    location = await object_storage.store_file(
-        file_name="sub_dir/test04.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="sub_dir/test04.bin", value=binary_file)
     assert location == "sub_dir/test04.bin"
 
-    location = await object_storage.store_file(
-        file_name="sub_dir/test01.tmp", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="sub_dir/test01.tmp", value=binary_file)
     assert location == "sub_dir/test01.tmp"
 
     nofilter_no_recursive = await object_storage.list_files()
@@ -550,53 +524,42 @@ async def test_list_files_with_partition(prefix, moto_server):
 
     binary_file = b"Binary file"
 
-    location = await object_storage.store_file(
-        file_name="test01.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="test01.bin", value=binary_file)
     partition_key = location[: location.rfind("/")]
 
     assert location == f"{partition_key}/test01.bin"
 
-    location = await object_storage.store_file(
-        file_name="test02.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="test02.bin", value=binary_file)
     assert location == f"{partition_key}/test02.bin"
 
-    location = await object_storage.store_file(
-        file_name="test01.tmp", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="test01.tmp", value=binary_file)
     assert location == f"{partition_key}/test01.tmp"
 
-    location = await object_storage.store_file(
-        file_name="sub_dir/test03.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="sub_dir/test03.bin", value=binary_file)
     assert location == f"{partition_key}/sub_dir/test03.bin"
 
-    location = await object_storage.store_file(
-        file_name="sub_dir/test04.bin", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="sub_dir/test04.bin", value=binary_file)
     assert location == f"{partition_key}/sub_dir/test04.bin"
 
-    location = await object_storage.store_file(
-        file_name="sub_dir/test01.tmp", value=binary_file
-    )
+    location = await object_storage.store_file(file_name="sub_dir/test01.tmp", value=binary_file)
     assert location == f"{partition_key}/sub_dir/test01.tmp"
 
     nofilter_no_recursive = await object_storage.list_files()
     nofilter_recursive = await object_storage.list_files(recursive=True)
-    filter_no_recursive = await object_storage.list_files(
-        wildcard=f"{partition_key}/*.bin"
-    )
+    filter_no_recursive = await object_storage.list_files(wildcard=f"{partition_key}/*.bin")
     filter_recursive = await object_storage.list_files(wildcard="*.bin", recursive=True)
     filter_recursive_subdir = await object_storage.list_files(
         wildcard=f"{partition_key}/sub_dir/*.bin", recursive=True
     )
 
-    assert nofilter_no_recursive == [
-        # ItemLocator(item_id="test01.bin"),
-        # ItemLocator(item_id="test01.tmp"),
-        # ItemLocator(item_id="test02.bin"),
-    ]
+    assert (
+        nofilter_no_recursive
+        == [
+            # ItemLocator(item_id="test01.bin"),
+            # ItemLocator(item_id="test01.tmp"),
+            # ItemLocator(item_id="test02.bin"),
+        ]
+    )
 
     assert nofilter_recursive == [
         ItemLocator(item_id="sub_dir/test01.tmp", partition_key=partition_key),

@@ -37,9 +37,7 @@ async def __init_event__(context):
         object_storage = await ObjectStorage.with_settings(settings).connect()
 
 
-async def create_something(
-    payload: SomethingParams, context: EventContext
-) -> Something:
+async def create_something(payload: SomethingParams, context: EventContext) -> Something:
     logger.info(
         context,
         "Creating something...",

@@ -58,9 +58,7 @@ async def load(
 
     """
     assert object_storage
-    logger.info(
-        context, "load", extra=extra(something_id=item_id, path=object_storage.bucket)
-    )
+    logger.info(context, "load", extra=extra(something_id=item_id, path=object_storage.bucket))
     something = await object_storage.get(
         key=item_id, partition_key=partition_key, datatype=Something
     )

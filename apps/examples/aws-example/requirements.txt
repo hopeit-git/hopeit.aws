@@ -1,3 +1,0 @@
-hopeit.engine[web,cli]
-hopeit.aws.s3
-aiofiles
