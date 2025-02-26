@@ -34,7 +34,7 @@ lint-plugin:
 	uv run ruff format --check $(PLUGINFOLDER)/src/ $(PLUGINFOLDER)/test/
 	uv run ruff check $(PLUGINFOLDER)/src/ $(PLUGINFOLDER)/test/
 	MYPYPATH=$(PLUGINFOLDER)/src/ uv run mypy --namespace-packages -p hopeit
-	MYPYPATH=$(PLUGINFOLDER)/src:$(PLUGINFOLDER)/test uv run mypy --namespace-packages $(PLUGINFOLDER)/test/
+	MYPYPATH=$(PLUGINFOLDER)/src:$(PLUGINFOLDER)/test uv run mypy --namespace-packages $(PLUGINFOLDER)/test
 
 lint-plugins:		
 	make PLUGINFOLDER=plugins/aws/s3 lint-plugin
@@ -42,11 +42,10 @@ lint-plugins:
 lint-app:
 	uv run ruff format $(APPFOLDER)/src/ $(APPFOLDER)/test/ --check
 	uv run ruff check $(APPFOLDER)/src/ $(APPFOLDER)/test/
-	MYPYPATH=$(APPFOLDER)/src/ uv run mypy --install-types  --check-untyped-defs --non-interactive --namespace-packages -p  aws_example
-	MYPYPATH=$(APPFOLDER)/src/ uv run mypy --check-untyped-defs  --namespace-packages -p  aws_example
+	MYPYPATH=$(APPFOLDER)/src/ uv run mypy -p ${PACKAGE}
 
 lint-apps:
-	make APPFOLDER=apps/examples/aws-example lint-app
+	make APPFOLDER=apps/examples/aws-example PACKAGE=aws_example lint-app
 	
 lint: lint-plugins lint-apps
 

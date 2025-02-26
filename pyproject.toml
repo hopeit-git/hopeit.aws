@@ -3,7 +3,6 @@
 name = "hopeit.aws.workspace"
 version = "0.3.rc0"
 
-
 dynamic = ["readme"]
 
 requires-python = ">=3.10"
