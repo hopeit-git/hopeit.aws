@@ -1,11 +1,11 @@
 [project]
 name = "hopeit.aws.s3"
-version = "0.3.0rc0"
+version = "0.3.0rc1"
 
 description = "Hopeit Engine S3 Storage Toolkit"
 dynamic = ["readme"]
 
-dependencies = ["hopeit.engine>=0.26.0rc1", "boto3<1.36.0", "aioboto3>=13.0.1"]
+dependencies = ["hopeit.engine>=0.26.0rc1", "aioboto3<14.0.0"]
 license = { text = "Apache 2" }
 authors = [
     { name = "Leo Smerling & Pablo Canto", email = "contact@hopeit.com.ar" },
