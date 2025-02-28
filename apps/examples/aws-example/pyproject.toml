@@ -1,13 +1,13 @@
 [project]
 name = "aws_example"
-version = "0.3.0rc1"
+version = "0.3.0rc0"
 
 description = "hopeit.aws plugins Example App"
 
 dependencies = [
-    "hopeit.engine[web,cli]>=0.26.0rc1",
-    "hopeit.aws.s3>=0.3.0rc1",
-    "aiofiles",
+    "hopeit.engine[web,cli]>=0.25.4",
+    "hopeit.aws.s3>=0.3.0rc0",
+    "aiofiles>=24.1.0",
 ]
 license = { text = "Apache 2" }
 authors = [

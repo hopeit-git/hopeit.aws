@@ -44,7 +44,7 @@ __api__ = event_api(
 )
 
 
-async def __init_event__(context: EventContext):
+async def __init_event__(context: EventContext) -> None:
     global object_storage
     if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
