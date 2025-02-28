@@ -44,27 +44,23 @@ aws-example = { path = "apps/examples/aws-example" }
 "GitHub: repo" = "https://github.com/hopeit-git/hopeit.engine"
 
 [tool.uv]
-package = false
 dev-dependencies = [
-    "aioboto3",
-    "aiofiles",
-    "boto3<1.36.0",
-    "boto3-stubs[s3]",
+    "aioboto3>=14.0.0",
+    "boto3-stubs>=1.37.1",
     "hopeit.engine>=0.26.rc1",
-    "moto[server]",
-    "mypy>=1.13.0",
-    "pytest>=8.3.3",
+    "moto[server]>=5.1.0",
+    "mypy>=1.15.0",
+    "mypy-boto3-s3>=1.37.0",
+    "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.0.0",
-    "ruff>=0.9.7",
-    "types-aiofiles>=24.1.0",
+    "ruff>=0.9.8",
+    "types-aiofiles>=24.1.0"
 ]
+package = false
 
 [tool.pyright]
-include = [
-    "plugins/aws/s3", 
-    "apps/examples/aws-example"
-]
+include = ["plugins/aws/s3", "apps/examples/aws-example"]
 reportArgumentType = false
 reportFunctionMemberAccess = false
 reportGeneralTypeIssues = "warning"
@@ -77,6 +73,7 @@ line-length = 100
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.setuptools.dynamic]
 readme = { file = ["README.md"], content-type = "text/markdown" }
