@@ -31,13 +31,13 @@ format:
 	make MODULEFOLDER=plugins/aws/s3 format-module
 
 lint-plugin:
-	uv run ruff format --check $(PLUGINFOLDER)/src/ $(PLUGINFOLDER)/test/
-	uv run ruff check $(PLUGINFOLDER)/src/ $(PLUGINFOLDER)/test/
-	MYPYPATH=$(PLUGINFOLDER)/src/ uv run mypy --namespace-packages -p hopeit
-	MYPYPATH=$(PLUGINFOLDER)/src:$(PLUGINFOLDER)/test uv run mypy --namespace-packages $(PLUGINFOLDER)/test
+	uv run ruff format --check $(PLUGINFOLDER)src/ $(PLUGINFOLDER)test/
+	uv run ruff check $(PLUGINFOLDER)src/ $(PLUGINFOLDER)test/
+	MYPYPATH=$(PLUGINFOLDER)src/ uv run mypy --namespace-packages -p hopeit
+	MYPYPATH=$(PLUGINFOLDER)src:$(PLUGINFOLDER)test uv run mypy --namespace-packages $(PLUGINFOLDER)test
 
 lint-plugins:		
-	make PLUGINFOLDER=plugins/aws/s3 lint-plugin
+	make PLUGINFOLDER=plugins/aws/s3/ lint-plugin
 
 lint-app:
 	uv run ruff format $(APPFOLDER)/src/ $(APPFOLDER)/test/ --check
@@ -50,10 +50,10 @@ lint-apps:
 lint: lint-plugins lint-apps
 
 test-plugin:
-	PYTHONPATH=$(PLUGINFOLDER)/src uv run pytest -v --cov --cov-fail-under=85 --cov-report=term $(PLUGINFOLDER)/src/ $(PLUGINFOLDER)/test/
+	PYTHONPATH=$(PLUGINFOLDER)src uv run pytest -v --cov --cov-fail-under=85 --cov-report=term $(PLUGINFOLDER)src/ $(PLUGINFOLDER)test/
 
 test-plugins:
-	make PLUGINFOLDER=plugins/aws/s3 test-plugin
+	make PLUGINFOLDER=plugins/aws/s3/ test-plugin
 
 test-app:
 	PYTHONPATH=$(APPFOLDER)/src/ && uv run pytest -v --cov --cov-fail-under=90 --cov-report=term $(APPFOLDER)/src/ $(APPFOLDER)/test/
@@ -70,10 +70,10 @@ dist-plugin: clean-dist-plugin
 	uv --project=$(PLUGINFOLDER) build
 
 clean-dist-plugin:
-	rm -rf $(PLUGINFOLDER)/dist
+	rm -rf $(PLUGINFOLDER)dist
 
 publish-plugin-pypi:
-	uv publish -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)/dist/*
+	uv publish -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)dist/*
 
 publish-plugin-pypi-test:
-	uv publish -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --publish-url=https://test.pypi.org/legacy/ $(PLUGINFOLDER)/dist/*
+	uv publish -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --publish-url=https://test.pypi.org/legacy/ $(PLUGINFOLDER)dist/*
