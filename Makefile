@@ -73,7 +73,7 @@ clean-dist-plugin:
 	rm -rf $(PLUGINFOLDER)dist
 
 publish-plugin-pypi:
-	uv publish -u=__token__ -p=$(PYPI_API_TOKEN) --repository pypi $(PLUGINFOLDER)dist/*
+	uv publish -u=__token__ -p=$(PYPI_API_TOKEN) $(PLUGINFOLDER)dist/*
 
 publish-plugin-pypi-test:
 	uv publish -u=__token__ -p=$(TEST_PYPI_API_TOKEN) --publish-url=https://test.pypi.org/legacy/ $(PLUGINFOLDER)dist/*
