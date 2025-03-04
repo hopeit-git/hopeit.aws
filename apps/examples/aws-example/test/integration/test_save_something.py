@@ -28,14 +28,10 @@ async def test_save_something(
     assert result == f"{partition_key}test.json"
 
     context = create_test_context(app_config, "s3.save_something")
-    storage = await ObjectStorage.with_settings(
-        context.settings.extras["object_storage"]
-    ).connect()
+    storage = await ObjectStorage.with_settings(context.settings.extras["object_storage"]).connect()
     partition_key, file_name = os.path.split(result)
     key, _ = os.path.splitext(file_name)
-    saved_object = await storage.get(
-        key=key, partition_key=partition_key, datatype=Something
-    )
+    saved_object = await storage.get(key=key, partition_key=partition_key, datatype=Something)
 
     assert isinstance(saved_object, Something)
     assert saved_object.id == something_params_example.id

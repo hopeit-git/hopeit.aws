@@ -44,9 +44,7 @@ async def test_streamed_upload_file(
 
     context = create_test_context(app_config, "s3.streamed_upload_file")
 
-    storage = await ObjectStorage.with_settings(
-        context.settings.extras["object_storage"]
-    ).connect()
+    storage = await ObjectStorage.with_settings(context.settings.extras["object_storage"]).connect()
 
     data = await storage.get_file(file_name=file_name, partition_key=partition_key)
 

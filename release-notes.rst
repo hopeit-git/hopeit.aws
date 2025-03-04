@@ -1,6 +1,12 @@
 Release Notes
 =============
 
+Version 0.3.0
+_____________
+- hopeit.aws.s3
+
+   - Migrated build system to `uv`.
+
 Version 0.2.0
 _____________
 - hopeit.aws.s3 

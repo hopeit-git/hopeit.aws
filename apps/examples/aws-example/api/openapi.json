@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "version": "0.2",
+    "version": "0.3",
     "title": "AWS Example",
     "description": "AWS Example"
   },
   "paths": {
-    "/api/aws-example/0x2/s3/save-something": {
+    "/api/aws-example/0x3/s3/save-something": {
       "post": {
         "summary": "AWS Example: Save Something",
         "description": "Creates and saves Something",
@@ -83,11 +83,11 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     },
-    "/api/aws-example/0x2/s3/query-something": {
+    "/api/aws-example/0x3/s3/query-something": {
       "post": {
         "summary": "AWS Example: Query Something",
         "description": "Loads Something from s3",
@@ -153,11 +153,11 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     },
-    "/api/aws-example/0x2/s3/list-objects": {
+    "/api/aws-example/0x3/s3/list-objects": {
       "get": {
         "summary": "AWS Example: List Objects",
         "description": "Lists all available Something objects",
@@ -207,11 +207,11 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     },
-    "/api/aws-example/0x2/s3/list-files": {
+    "/api/aws-example/0x3/s3/list-files": {
       "get": {
         "summary": "AWS Example: List Files",
         "description": "Lists all available Something objects",
@@ -261,11 +261,11 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     },
-    "/api/aws-example/0x2/s3/upload-download-file": {
+    "/api/aws-example/0x3/s3/upload-download-file": {
       "get": {
         "summary": "AWS Example: Upload Download File",
         "description": "This example just upload and download files to s2 storage as example of usage",
@@ -325,11 +325,11 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     },
-    "/api/aws-example/0x2/s3/streamed-upload-file": {
+    "/api/aws-example/0x3/s3/streamed-upload-file": {
       "post": {
         "summary": "AWS Example: Streamed Upload File",
         "description": "Upload files using Multipart form request",
@@ -414,11 +414,11 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     },
-    "/api/aws-example/0x2/s3/streamed-download-file": {
+    "/api/aws-example/0x3/s3/streamed-download-file": {
       "get": {
         "summary": "AWS Example: Streamed Download File",
         "description": "Download streamed S3 content as file.\nThe PostprocessHook return the requested resource as stream using `prepare_stream_response`.",
@@ -494,7 +494,7 @@
           }
         },
         "tags": [
-          "aws_example.0x2"
+          "aws_example.0x3"
         ]
       }
     }

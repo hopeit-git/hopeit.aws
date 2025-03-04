@@ -32,7 +32,7 @@ __api__ = event_api(
 )
 
 
-async def __init_event__(context):
+async def __init_event__(context) -> None:
     global object_storage
     if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
@@ -58,9 +58,7 @@ async def load(
 
     """
     assert object_storage
-    logger.info(
-        context, "load", extra=extra(something_id=item_id, path=object_storage.bucket)
-    )
+    logger.info(context, "load", extra=extra(something_id=item_id, path=object_storage.bucket))
     something = await object_storage.get(
         key=item_id, partition_key=partition_key, datatype=Something
     )

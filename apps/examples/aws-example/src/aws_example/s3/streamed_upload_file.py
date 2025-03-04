@@ -44,7 +44,7 @@ __api__ = event_api(
 )
 
 
-async def __init_event__(context: EventContext):
+async def __init_event__(context: EventContext) -> None:
     global object_storage
     if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
@@ -74,9 +74,7 @@ async def __preprocess__(
     return FileUploadInfo(uploaded_files=uploaded_files)
 
 
-async def create_items(
-    payload: FileUploadInfo, context: EventContext
-) -> List[UploadedFile]:
+async def create_items(payload: FileUploadInfo, context: EventContext) -> List[UploadedFile]:
     """
     Create Something objects to be returned for each uploaded file
     """

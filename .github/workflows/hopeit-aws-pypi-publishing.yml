@@ -14,22 +14,30 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build and publish Python 🐍 distributions 📦 to PyPI
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        make dev-deps
-    - name: QA
-      run: |
-        make qa
-    - name: make plugin aws/s3
-      run: |
-        make PLUGINFOLDER=plugins/aws/s3/ dist-plugin
-    - name: Publish plugin aws/s3 on Test PyPI
-      env: 
-        PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN_AWS }}
-      run: |
-        make PLUGINFOLDER=plugins/aws/s3 pypi-plugin
+      - uses: actions/checkout@v4
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: make ci-deps
+        run: PYTHONVERSION=${{ matrix.python-version }} make ci-deps
+
+      - name: lint
+        run: |
+          make lint
+
+      - name: test
+        run: |
+          make test
+
+      - name: make dist-plugin aws-s3
+        run: |
+          make PLUGINFOLDER=plugins/aws/s3/ dist-plugin
+
+      - name: publish plugin aws-s3 on PyPI
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          make PLUGINFOLDER=plugins/aws/s3 publish-plugin-pypi

@@ -1,2 +1,0 @@
-hopeit.engine>=0.25.0
-aioboto3>=13.0.1

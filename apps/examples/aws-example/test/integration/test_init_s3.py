@@ -15,5 +15,4 @@ async def test_init_no_server(app_config: AppConfig):
 
 @pytest.mark.asyncio
 async def test_init(moto_server: ThreadedMotoServer, app_config: AppConfig):
-
     await execute_event(app_config=app_config, event_name="s3.init", payload=None)

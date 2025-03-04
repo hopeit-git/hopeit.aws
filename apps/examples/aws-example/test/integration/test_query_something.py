@@ -27,9 +27,7 @@ async def sample_file_id(app_config: AppConfig):
     settings = context.settings(key="object_storage", datatype=ObjectStorageSettings)
     storage = await ObjectStorage.with_settings(settings).connect()
 
-    ret = await storage.store(
-        key=test_id1, value=Payload.from_json(json_str, datatype=Something)
-    )
+    ret = await storage.store(key=test_id1, value=Payload.from_json(json_str, datatype=Something))
 
     return test_id1, storage.partition_key(ret)
 

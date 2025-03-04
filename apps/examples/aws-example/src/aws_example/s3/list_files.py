@@ -32,7 +32,7 @@ __api__ = event_api(
 )
 
 
-async def __init_event__(context):
+async def __init_event__(context) -> None:
     global object_storage
     if object_storage is None:
         object_storage = await ObjectStorage.with_settings(
@@ -40,9 +40,7 @@ async def __init_event__(context):
         ).connect()
 
 
-async def load_all(
-    payload: None, context: EventContext, wildcard: str = "*"
-) -> List[ItemLocator]:
+async def load_all(payload: None, context: EventContext, wildcard: str = "*") -> List[ItemLocator]:
     """
     Load objects that match the given wildcard
     """

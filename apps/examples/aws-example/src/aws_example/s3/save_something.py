@@ -28,7 +28,7 @@ __api__ = event_api(
 )
 
 
-async def __init_event__(context):
+async def __init_event__(context) -> None:
     global object_storage
     if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
@@ -37,9 +37,7 @@ async def __init_event__(context):
         object_storage = await ObjectStorage.with_settings(settings).connect()
 
 
-async def create_something(
-    payload: SomethingParams, context: EventContext
-) -> Something:
+async def create_something(payload: SomethingParams, context: EventContext) -> Something:
     logger.info(
         context,
         "Creating something...",

@@ -1,5 +1,4 @@
-"""Intial setup resources
-"""
+"""Intial setup resources"""
 
 from botocore.exceptions import EndpointConnectionError
 from hopeit.app.context import EventContext

@@ -77,16 +77,15 @@ async def download_item(file_name: str, context: EventContext) -> str:
     partition_key = object_storage.partition_key(file_name)
     file_name = file_name.rsplit("/", 1)[-1]
 
-    data = await object_storage.get_file(
-        file_name=file_name, partition_key=partition_key
-    )
+    data = await object_storage.get_file(file_name=file_name, partition_key=partition_key)
     assert data
     with open(f"{tgt_file_path}{tgt_file_name}", "wb") as file:
         file.write(data)
 
-    with open(f"{tgt_file_path}{tgt_file_name}", "rb") as file1, open(
-        f"{tgt_file_path}{file_name}", "rb"
-    ) as file2:
+    with (
+        open(f"{tgt_file_path}{tgt_file_name}", "rb") as file1,
+        open(f"{tgt_file_path}{file_name}", "rb") as file2,
+    ):
         assert file1.read() == file2.read()
 
     return "Done"

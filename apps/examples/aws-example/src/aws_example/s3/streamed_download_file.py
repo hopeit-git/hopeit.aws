@@ -37,7 +37,7 @@ __api__ = event_api(
 )
 
 
-async def __init_event__(context):
+async def __init_event__(context) -> None:
     global object_storage
     if object_storage is None:
         settings: ObjectStorageSettings = context.settings(
@@ -59,9 +59,7 @@ async def get_streamed_data(
     return SomeFile(file_name=file_name, partition_key=partition_key)
 
 
-async def __postprocess__(
-    file: SomeFile, context: EventContext, response: PostprocessHook
-):
+async def __postprocess__(file: SomeFile, context: EventContext, response: PostprocessHook):
     """
     Stream S3 file:
     """

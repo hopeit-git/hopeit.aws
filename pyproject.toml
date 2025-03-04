@@ -1,0 +1,80 @@
+
+[project]
+name = "hopeit.aws.workspace"
+version = "0.3.0rc0"
+
+dynamic = ["readme"]
+
+requires-python = ">=3.10"
+
+description = "Hopeit Engine AWS plugins"
+license = { text = "Apache 2" }
+authors = [
+    { name = "Leo Smerling & Pablo Canto", email = "contact@hopeit.com.ar" },
+    { name = "Leo Smerling", email = "contact@hopeit.com.ar" },
+    { name = "Pablo Canto", email = "contact@hopeit.com.ar" },
+]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: AsyncIO",
+]
+dependencies = ["hopeit.aws.s3", "aws-example"]
+
+[tool.uv.sources]
+hopeit-aws-s3 = { path = "plugins/aws/s3" }
+aws-example = { path = "apps/examples/aws-example" }
+
+[project.urls]
+"Homepage" = "https://github.com/hopeit-git/hopeit.engine"
+"CI: GitHub Actions" = "https://github.com/hopeit-git/hopeit.engine/actions?query=workflow"
+"Docs: RTD" = "https://hopeitengine.readthedocs.io/en/latest/"
+"GitHub: issues" = "https://github.com/hopeit-git/hopeit.engine/issues"
+"GitHub: repo" = "https://github.com/hopeit-git/hopeit.engine"
+
+[tool.uv]
+dev-dependencies = [
+    "boto3-stubs>=1.37.3",
+    "moto[server]>=5.1.0",
+    "mypy>=1.15.0",
+    "mypy-boto3-s3>=1.37.0",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.8",
+    "types-aiofiles>=24.1.0",
+]
+package = false
+
+[tool.pyright]
+include = ["plugins/aws/s3", "apps/examples/aws-example"]
+reportArgumentType = false
+reportFunctionMemberAccess = false
+reportGeneralTypeIssues = "warning"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint.extend-per-file-ignores]
+"engine/test/**/test_*.py" = ["F401", "F811"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.setuptools.dynamic]
+readme = { file = ["README.md"], content-type = "text/markdown" }
+
+[tool.mypy]
+check_untyped_defs = true

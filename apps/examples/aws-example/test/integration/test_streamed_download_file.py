@@ -29,9 +29,7 @@ async def test_streamed_download_file(moto_server: ThreadedMotoServer, app_confi
 
     context = create_test_context(app_config, "s3.streamed_download_file")
 
-    storage = await ObjectStorage.with_settings(
-        context.settings.extras["object_storage"]
-    ).connect()
+    storage = await ObjectStorage.with_settings(context.settings.extras["object_storage"]).connect()
 
     file_path = await storage.store_file(file_name=file_name, value=file)
 
