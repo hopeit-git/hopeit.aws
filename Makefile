@@ -5,7 +5,7 @@ SRC = $(wildcard src/*.py)
 
 env:
 	uv venv --seed --python 3.12
-	uv sync --dev --prerelease if-necessary-or-explicit
+	uv sync --dev
 
 clean-env:
 	rm -rf .venv

@@ -1,6 +1,6 @@
 [project]
 name = "hopeit.aws.s3"
-version = "0.3.0rc0"
+version = "0.3.0"
 
 description = "Hopeit Engine S3 Storage Toolkit"
 dynamic = ["readme"]
